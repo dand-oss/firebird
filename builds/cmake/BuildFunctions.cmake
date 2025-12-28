@@ -93,14 +93,15 @@ function(epp_process type files gpre_target)
     # Get extra args after the required parameters
     set(extra_args ${ARGN})
 
-    # Build environment command for boot tools
-    set(ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
+    # Environment for master phase (boot_gpre needs FIREBIRD for database access)
+    # Boot phase (gpre_boot) doesn't need environment - it's a standalone preprocessor
+    # Note: boot_dir already includes $<CONFIG> for multi-config generators
     if (WIN32)
-        # Windows: DLLs found via PATH
-        set(ENV_CMD ${ENV_CMD} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
+        # No PATH needed - Windows finds DLLs in same directory as EXE
+        set(MASTER_ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
     else()
-        # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
-        set(ENV_CMD ${ENV_CMD} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+        set(MASTER_ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
+        set(MASTER_ENV_CMD ${MASTER_ENV_CMD} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}")
     endif()
 
     foreach(F ${${files}})
@@ -110,13 +111,27 @@ function(epp_process type files gpre_target)
         get_filename_component(dir ${out} PATH)
 
         if ("${type}" STREQUAL "boot")
-            add_custom_command(
-                OUTPUT ${out}
-                DEPENDS ${gpre_target} ${in}
-                COMMENT "Calling GPRE boot for ${F}"
-                COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-                COMMAND ${ENV_CMD} $<TARGET_FILE:${gpre_target}> ${extra_args} ${in} ${out}
-            )
+            # gpre_boot is a standalone preprocessor - no environment needed
+            # On Windows, DLLs in the same directory as EXE are found automatically
+            # On Unix, we still need LD_LIBRARY_PATH for shared library loading
+            if (WIN32)
+                add_custom_command(
+                    OUTPUT ${out}
+                    DEPENDS ${gpre_target} ${in}
+                    COMMENT "Calling GPRE boot for ${F}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
+                    COMMAND $<TARGET_FILE:${gpre_target}> ${extra_args} ${in} ${out}
+                )
+            else()
+                add_custom_command(
+                    OUTPUT ${out}
+                    DEPENDS ${gpre_target} ${in}
+                    COMMENT "Calling GPRE boot for ${F}"
+                    COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
+                    COMMAND ${CMAKE_COMMAND} -E env "LD_LIBRARY_PATH=$<TARGET_FILE_DIR:${gpre_target}>:${boot_dir}/lib" "ASAN_OPTIONS=detect_leaks=0"
+                            $<TARGET_FILE:${gpre_target}> ${extra_args} ${in} ${out}
+                )
+            endif()
         elseif ("${type}" STREQUAL "master")
             get_filename_component(file ${out} NAME)
             set(dir ${dir}/${file}.d)
@@ -128,7 +143,7 @@ function(epp_process type files gpre_target)
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/metadata.fdb ${dir}/yachts.lnk
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/security.fdb ${dir}/security.fdb
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/msg.fdb ${dir}/msg.fdb
-                COMMAND ${ENV_CMD} $<TARGET_FILE:${gpre_target}> ${extra_args} -b ${dir}/ ${in} ${out}
+                COMMAND ${MASTER_ENV_CMD} $<TARGET_FILE:${gpre_target}> ${extra_args} -b ${dir}/ ${in} ${out}
             )
         endif()
     endforeach()
