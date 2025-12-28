@@ -117,13 +117,13 @@ project_group(boot_environment "Boot/Custom build steps")
 
 # Boot tool environment - sets FIREBIRD and library paths for shared library loading
 # This is used by all boot tool invocations via cmake -E env
-set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
+# Note: boot_dir already includes $<CONFIG> for multi-config generators (set in CMakeLists.txt)
 if (WIN32)
-    # Windows: DLLs found via PATH
-    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
+    # No PATH needed - Windows finds DLLs in same directory as EXE
+    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
 else()
-    # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
-    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
+    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}")
 endif()
 
 ########################################
@@ -145,7 +145,7 @@ file(WRITE ${create_db_security_sql} "create database 'security_.fdb' user 'SYSD
 file(WRITE ${create_db_metadata_sql} "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';\n")
 
 add_custom_command(
-    OUTPUT security.fdb
+    OUTPUT ${boot_dir}/security.fdb
     DEPENDS
         $<TARGET_FILE:boot_isql>
         $<TARGET_FILE:boot_gfix>
@@ -166,7 +166,7 @@ add_custom_command(
     COMMENT "Generating security.fdb"
 )
 add_custom_command(
-    OUTPUT metadata.fdb
+    OUTPUT ${boot_dir}/metadata.fdb
     DEPENDS
         $<TARGET_FILE:boot_isql>
         $<TARGET_FILE:boot_gfix>
@@ -187,8 +187,8 @@ add_custom_command(
 add_custom_target(databases
     DEPENDS
         boot_engine
-        metadata.fdb
-        security.fdb
+        ${boot_dir}/metadata.fdb
+        ${boot_dir}/security.fdb
     SOURCES
         ${databases_src}
 )
