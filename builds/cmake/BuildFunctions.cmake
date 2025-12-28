@@ -270,7 +270,8 @@ function(create_command command type out)
     )
 
     set(cmd_name ${command})
-    if (MSVC OR XCODE)
+    get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if (is_multi_config)
         set(conf _$<CONFIG>)
     endif()
 

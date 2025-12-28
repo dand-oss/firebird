@@ -59,6 +59,58 @@ include(asv_cmake_defaults)
 asv_cmake_defaults( )
 ###############
 
+# Force C++17 - Firebird is designed for C++17, not C++23
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD_REQUIRED ON)
+
+# Suppress warnings that are treated as errors by ASV cmake defaults
+# Firebird code predates modern strict warning requirements
+if (UNIX)
+    add_compile_options(
+        -Wno-conversion
+        -Wno-implicit-fallthrough
+        -Wno-narrowing
+        -Wno-sign-conversion
+        -Wno-deprecated-declarations
+        -Wno-unused-parameter
+        -Wno-class-memaccess
+        -Wno-deprecated-copy
+        -Wno-invalid-offsetof
+        -Wno-parentheses
+        -Wno-switch
+        -Wno-type-limits
+        -Wno-unused-variable
+    )
+endif()
+
+# MSVC warning suppressions (equivalent to GCC -Wno-* flags above)
+if (MSVC)
+    add_compile_options(
+        /wd4244  # conversion, possible loss of data
+        /wd4267  # conversion from size_t
+        /wd4018  # signed/unsigned mismatch
+        /wd4146  # unary minus to unsigned
+        /wd4805  # unsafe mix of type and bool
+    )
+endif()
+
+########################################
+# ASI build options
+########################################
+
+# Build mode: CLIENT (default), EMBEDDED, or SERVER
+# - CLIENT: Client library only (for connecting to remote server)
+# - EMBEDDED: Client library + Engine13 plugin + dependencies (for embedded database use)
+# - SERVER: Full server build with all tools
+set(FIREBIRD_BUILD_MODE "CLIENT" CACHE STRING "Build mode: CLIENT (default), EMBEDDED, or SERVER")
+set_property(CACHE FIREBIRD_BUILD_MODE PROPERTY STRINGS CLIENT EMBEDDED SERVER)
+
+if (NOT FIREBIRD_BUILD_MODE MATCHES "^(EMBEDDED|CLIENT|SERVER)$")
+    message(FATAL_ERROR "Invalid FIREBIRD_BUILD_MODE: '${FIREBIRD_BUILD_MODE}'. Must be EMBEDDED, CLIENT, or SERVER.")
+endif()
+
 ########################################
 # build type settings
 ########################################
@@ -144,6 +196,14 @@ if (UNIX)
     endif()
     set(ICU_INCLUDE_DIRS ${ICU_INCLUDE_DIR})
     include_directories(${ICU_INCLUDE_DIRS})
+
+    # Find ICU libraries for embedded/server mode
+    if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+        find_library(ICU_UC_LIB icuuc REQUIRED)
+        find_library(ICU_DATA_LIB icudata REQUIRED)
+        find_library(ICU_I18N_LIB icui18n REQUIRED)
+        set(ICU_LIBRARIES ${ICU_UC_LIB} ${ICU_DATA_LIB} ${ICU_I18N_LIB})
+    endif()
 endif()
 
 ################################################################################
@@ -169,6 +229,9 @@ if (WIN32)
     set(FB_PREFIX "c:\\\\Program Files\\\\Firebird\\\\")
     set(FB_IPC_NAME "FIREBIRD")
 endif()
+
+# Additional directory definitions for autoconfig.h
+set(FB_TZDATADIR "")
 
 set(AUTOCONFIG_SRC ${CMAKE_SOURCE_DIR}/src/include/gen/autoconfig.h.in)
 set(AUTOCONFIG ${CMAKE_BINARY_DIR}/src/include/gen/autoconfig.h)
@@ -220,6 +283,7 @@ if (UNIX)
 
     set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -fPIC")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fPIC -msse4 -std=c++17")
+
 
     if (NOT CMAKE_CROSSCOMPILING)
         set(LIB_readline readline)
@@ -326,12 +390,12 @@ endif()
 
 include(BuildFunctions)
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 create_boot_commands()
 create_master_commands()
 
-endif() # if (NOT CMAKE_CROSSCOMPILING)
+endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 crosscompile_prebuild_steps()
 
@@ -388,13 +452,13 @@ project_group               (decNumber Extern)
 
 file(GLOB btyacc_src "extern/btyacc/*.c" "extern/btyacc/*.h")
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 add_executable          (btyacc ${btyacc_src})
 project_group           (btyacc Extern)
 set_output_directory    (btyacc . CURRENT_DIR)
 
-endif() # if (NOT CMAKE_CROSSCOMPILING)
+endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 ########################################
 # EXECUTABLE cloop
@@ -402,14 +466,19 @@ endif() # if (NOT CMAKE_CROSSCOMPILING)
 
 file(GLOB cloop_src "extern/cloop/src/cloop/*.cpp" "extern/cloop/src/cloop/*.h")
 
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 add_executable          (cloop ${cloop_src})
 project_group           (cloop Extern)
+endif()
 
 ########################################
 # subdirectories
 ########################################
 
-add_subdirectory("examples")
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    add_subdirectory("examples")
+endif()
 add_subdirectory("src")
+
 
 ################################################################################
