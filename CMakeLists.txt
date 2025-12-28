@@ -323,27 +323,28 @@ endif()
 ################################################################################
 
 if (WIN32)
-    # icu
-    if (NOT ICU_EXTRACT)
-        message(STATUS "Extracting pre-built ICU")
-        set(ICU_EXTRACT ${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icu.exe -y
-            CACHE STRING "ICU extraction variable")
-        execute_process(COMMAND ${ICU_EXTRACT})
+    # icu - extract from zip if include dir doesn't exist
+    set(ICU_WIN_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/include")
+    if (NOT EXISTS "${ICU_WIN_INCLUDE}/unicode/ucnv.h")
+        message(STATUS "Extracting pre-built ICU from icu_windows.zip")
+        file(ARCHIVE_EXTRACT
+            INPUT "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icu_windows.zip"
+            DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu"
+        )
     endif()
+    set(ICU_INCLUDE_DIR "${ICU_WIN_INCLUDE}")
+    include_directories("${ICU_INCLUDE_DIR}")
 
-	# determine icu version
-	foreach(v RANGE 63 83)
-		if (EXISTS ${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icudt${v}l.dat)
-			set(ICU_VERSION ${v} CACHE STRING "ICU version")
-		endif()
-	endforeach()
-
-    # zlib
-    if (NOT ZLIB_EXTRACT)
-        message(STATUS "Extracting pre-built zlib")
-        set(ZLIB_EXTRACT ${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib/zlib.exe -y
-            CACHE STRING "zlib extraction variable")
-        execute_process(COMMAND ${ZLIB_EXTRACT})
+    # zlib - extract from zip if needed
+    set(ZLIB_WIN_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib")
+    if (NOT EXISTS "${ZLIB_WIN_INCLUDE}/zlib.h")
+        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib/zlib.zip")
+            message(STATUS "Extracting pre-built zlib")
+            file(ARCHIVE_EXTRACT
+                INPUT "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib/zlib.zip"
+                DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib"
+            )
+        endif()
     endif()
 endif()
 
