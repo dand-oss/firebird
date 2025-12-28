@@ -78,6 +78,15 @@
 /* Define this if OS is Windows NT */
 #cmakedefine WIN_NT 1
 
+/* MSVC noexcept support detection */
+#ifdef _MSC_VER
+#if !defined(HAS_NOEXCEPT)
+#if defined(_MSC_FULL_VER) && _MSC_FULL_VER >= 190023026
+#define HAS_NOEXCEPT
+#endif
+#endif
+#endif
+
 
 /******************************************************************************
  *
@@ -142,6 +151,9 @@
 
 /* plugins DIR (PREFIX/plugins) */
 #define FB_PLUGDIR "@FB_PLUGDIR@"
+
+/* tzdata DIR (PREFIX/tzdata) */
+#define FB_TZDATADIR "@FB_TZDATADIR@"
 
 /* examples database DIR (PREFIX/examples/empbuild) */
 #define FB_SAMPLEDBDIR "@FB_SAMPLEDBDIR@"
@@ -664,7 +676,7 @@
 #cmakedefine GETTIMEOFDAY_RETURNS_TIMEZONE 1
 
 #ifdef GETTIMEOFDAY_RETURNS_TIMEZONE
-#define GETTIMEOFDAY(x) gettimeofday((x), (struct timezone *)0)
+#define GETTIMEOFDAY(x) gettimeofday((x), (void*)0)
 #else
 #define GETTIMEOFDAY(x) gettimeofday((x))
 #endif
