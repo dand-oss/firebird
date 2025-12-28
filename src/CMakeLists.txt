@@ -454,7 +454,60 @@ if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 endif()
 set_exported_symbols        (yvalve firebird)
 set_output_directory_unix   (yvalve lib)
-set_target_properties       (yvalve PROPERTIES OUTPUT_NAME fbclient)
+set_target_properties       (yvalve PROPERTIES OUTPUT_NAME fbclient5)
+set_target_properties       (yvalve PROPERTIES EXPORT_NAME fbclient)
+
+# Add interface include directories for downstream consumers
+target_include_directories(yvalve PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
+    $<INSTALL_INTERFACE:include>
+)
+
+########################################
+# INSTALL RULES (client-only)
+########################################
+
+# Install the fbclient library
+install(TARGETS yvalve
+    EXPORT Firebird5Targets
+    LIBRARY DESTINATION lib
+    ARCHIVE DESTINATION lib
+    RUNTIME DESTINATION bin
+)
+
+# Install public headers
+install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/include/firebird/
+    DESTINATION include/firebird
+    FILES_MATCHING PATTERN "*.h"
+)
+
+# Install export targets file
+install(EXPORT Firebird5Targets
+    FILE Firebird5Targets.cmake
+    NAMESPACE Firebird5::
+    DESTINATION lib/cmake/Firebird5
+)
+
+# Package configuration
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird5ConfigVersion.cmake"
+    VERSION 5.0.0
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_SOURCE_DIR}/Firebird5Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird5Config.cmake"
+    INSTALL_DESTINATION lib/cmake/Firebird5
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird5Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird5ConfigVersion.cmake"
+    DESTINATION lib/cmake/Firebird5
+)
 
 
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
@@ -1005,13 +1058,13 @@ foreach(F ${files})
 endforeach()
 
 if (WIN32)
-    set(fbclient_lib_src $<CONFIG>/fbclient.lib)
-    set(fbclient_lib_dst fbclient_ms.lib)
+    set(fbclient_lib_src $<CONFIG>/fbclient5.lib)
+    set(fbclient_lib_dst fbclient5_ms.lib)
     set( ib_util_lib_src $<CONFIG>/ib_util.lib)
     set( ib_util_lib_dst ib_util_ms.lib)
     if (MINGW)
-        set(fbclient_lib_src libfbclient.dll.a)
-        set(fbclient_lib_dst libfbclient.dll.a)
+        set(fbclient_lib_src libfbclient5.dll.a)
+        set(fbclient_lib_dst libfbclient5.dll.a)
         set( ib_util_lib_src libib_util.dll.a)
         set( ib_util_lib_dst libib_util.dll.a)
     endif()
