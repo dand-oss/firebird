@@ -39,7 +39,7 @@ endfunction(check_functions)
 ########################################
 function(check_type_alignment type var)
     if (NOT DEFINED ${var})
-        check_c_source_runs("main(){struct s{char a;${type} b;};exit((int)&((struct s*)0)->b);}" ${var})
+        check_c_source_runs("#include <stdlib.h>\nint main(){struct s{char a;${type} b;};exit((int)(long)&((struct s*)0)->b);}" ${var})
         #message(STATUS "Performing Test ${var} - It's still OK.")
         message(STATUS "Performing Test ${var} - Success")
         set(${var} ${${var}_EXITCODE} CACHE STRING "${type} alignment" FORCE)
@@ -250,29 +250,14 @@ if (APPLE)
     set(HAVE_QSORT_R 0 CACHE STRING "Disabled on OS X" FORCE)
 endif()
 
-check_cxx_source_compiles("#include <unistd.h>\nmain(){fdatasync(0);}" HAVE_FDATASYNC)
-
-check_library_exists(dl dladdr "${CMAKE_LIBRARY_PREFIX}" HAVE_DLADDR)
-check_library_exists(m fegetenv "${CMAKE_LIBRARY_PREFIX}" HAVE_FEGETENV)
-check_library_exists(m llrint "${CMAKE_LIBRARY_PREFIX}" HAVE_LLRINT)
-check_library_exists(pthread sem_init "${CMAKE_LIBRARY_PREFIX}" HAVE_SEM_INIT)
-check_library_exists(pthread sem_timedwait "${CMAKE_LIBRARY_PREFIX}" HAVE_SEM_TIMEDWAIT)  
-
-check_type_size(caddr_t HAVE_CADDR_T)
-check_c_source_compiles("#include <sys/sem.h>\nmain(){union semun s;return 0;}" HAVE_SEMUN)
-set(CMAKE_EXTRA_INCLUDE_FILES sys/socket.h sys/types.h)
-check_type_size(socklen_t HAVE_SOCKLEN_T)
-set(CMAKE_EXTRA_INCLUDE_FILES)
-
+# Cross-platform type size checks
 check_type_size(long SIZEOF_LONG)
 check_type_size(size_t SIZEOF_SIZE_T)
 check_type_size("void *" SIZEOF_VOID_P)
-
-check_type_size(gid_t HAVE_GID_T)
 check_type_size(off_t HAVE_OFF_T)
 check_type_size(pid_t HAVE_PID_T)
 check_type_size(size_t HAVE_SIZE_T)
-check_type_size(uid_t HAVE_UID_T)
+check_type_size(caddr_t HAVE_CADDR_T)
 
 if (${HAVE_OFF_T} AND ${HAVE_OFF_T} EQUAL 8)
     set(_FILE_OFFSET_BITS 64)
@@ -281,47 +266,69 @@ endif()
 test_big_endian(WORDS_BIGENDIAN)
 check_symbol_exists(INFINITY math.h HAVE_INFINITY)
 check_symbol_exists(va_copy stdarg.h HAVE_VA_COPY)
-check_symbol(SOCK_CLOEXEC HAVE_DECL_SOCK_CLOEXEC socket.h sys/socket.h)
 
-set(CMAKE_EXTRA_INCLUDE_FILES Windows.h)
-check_type_size("char[MAX_PATH]" MAXPATHLEN)
-set(CMAKE_EXTRA_INCLUDE_FILES)
-
-set(TIMEZONE_TYPE "struct timezone")
-if (APPLE OR MINGW)
-    set(TIMEZONE_TYPE "void")
+# Windows-specific: MAXPATHLEN from MAX_PATH
+if (WIN32)
+    set(CMAKE_EXTRA_INCLUDE_FILES Windows.h)
+    check_type_size("char[MAX_PATH]" MAXPATHLEN)
+    set(CMAKE_EXTRA_INCLUDE_FILES)
 endif()
-check_prototype_definition(
-    gettimeofday
-    "int gettimeofday(struct timeval *tv, ${TIMEZONE_TYPE} *tz)"
-    0
-    "sys/time.h"
-    GETTIMEOFDAY_RETURNS_TIMEZONE
-)
 
-check_prototype_definition(
-    getmntent
-    "int getmntent(FILE *file, struct mnttab *mptr)"
-    0
-    mntent.h
-    GETMNTENT_TAKES_TWO_ARGUMENTS
-)
+# UNIX-only checks (these headers/functions don't exist on Windows)
+if (NOT WIN32)
+    check_cxx_source_compiles("#include <unistd.h>\nint main(){fdatasync(0);return 0;}" HAVE_FDATASYNC)
 
-check_struct_has_member("struct dirent" d_type dirent.h HAVE_STRUCT_DIRENT_D_TYPE)
+    check_library_exists(dl dladdr "${CMAKE_LIBRARY_PREFIX}" HAVE_DLADDR)
+    check_library_exists(m fegetenv "${CMAKE_LIBRARY_PREFIX}" HAVE_FEGETENV)
+    check_library_exists(m llrint "${CMAKE_LIBRARY_PREFIX}" HAVE_LLRINT)
+    check_library_exists(pthread sem_init "${CMAKE_LIBRARY_PREFIX}" HAVE_SEM_INIT)
+    check_library_exists(pthread sem_timedwait "${CMAKE_LIBRARY_PREFIX}" HAVE_SEM_TIMEDWAIT)
 
-check_c_source_compiles("#include <unistd.h>\nmain(){getpgrp();}" GETPGRP_VOID)
-check_c_source_compiles("#include <unistd.h>\nmain(){setpgrp();}" SETPGRP_VOID)
+    check_c_source_compiles("#include <sys/sem.h>\nint main(){union semun s;return 0;}" HAVE_SEMUN)
 
-check_c_source_compiles("__thread int a = 42;main(){a = a + 1;}" HAVE___THREAD)
-check_c_source_compiles("#include <sys/time.h>\n#include <time.h>\nmain(){}" TIME_WITH_SYS_TIME)
+    set(CMAKE_EXTRA_INCLUDE_FILES sys/socket.h sys/types.h)
+    check_type_size(socklen_t HAVE_SOCKLEN_T)
+    set(CMAKE_EXTRA_INCLUDE_FILES)
 
-set(CMAKE_REQUIRED_LIBRARIES pthread)
-check_c_source_compiles("#include <semaphore.h>\nmain(){sem_t s;sem_init(&s,0,0);}" WORKING_SEM_INIT)
-set(CMAKE_REQUIRED_LIBRARIES)
+    check_type_size(gid_t HAVE_GID_T)
+    check_type_size(uid_t HAVE_UID_T)
 
-if (EXISTS "/proc/self/exe")
-    set(HAVE__PROC_SELF_EXE 1)
-endif()
+    check_symbol(SOCK_CLOEXEC HAVE_DECL_SOCK_CLOEXEC socket.h sys/socket.h)
+
+    # gettimeofday check
+    check_c_source_compiles("
+        #include <sys/time.h>
+        int main() {
+            struct timeval tv;
+            gettimeofday(&tv, (void*)0);
+            return 0;
+        }
+    " GETTIMEOFDAY_RETURNS_TIMEZONE)
+
+    check_prototype_definition(
+        getmntent
+        "int getmntent(FILE *file, struct mnttab *mptr)"
+        0
+        mntent.h
+        GETMNTENT_TAKES_TWO_ARGUMENTS
+    )
+
+    check_struct_has_member("struct dirent" d_type dirent.h HAVE_STRUCT_DIRENT_D_TYPE)
+
+    check_c_source_compiles("#include <unistd.h>\nint main(){getpgrp();return 0;}" GETPGRP_VOID)
+    check_c_source_compiles("#include <unistd.h>\nint main(){setpgrp();return 0;}" SETPGRP_VOID)
+
+    check_c_source_compiles("__thread int a = 42;int main(){a = a + 1;return 0;}" HAVE___THREAD)
+    check_c_source_compiles("#include <sys/time.h>\n#include <time.h>\nint main(){return 0;}" TIME_WITH_SYS_TIME)
+
+    set(CMAKE_REQUIRED_LIBRARIES pthread)
+    check_c_source_compiles("#include <semaphore.h>\nint main(){sem_t s;sem_init(&s,0,0);return 0;}" WORKING_SEM_INIT)
+    set(CMAKE_REQUIRED_LIBRARIES)
+
+    if (EXISTS "/proc/self/exe")
+        set(HAVE__PROC_SELF_EXE 1)
+    endif()
+endif() # NOT WIN32
 
 ########################################
 
