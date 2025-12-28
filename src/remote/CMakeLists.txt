@@ -24,9 +24,11 @@ add_src_win32(remote_src
 file(GLOB remote_include "*.h")
 
 add_library             (remote ${remote_src} ${remote_include})
-add_dependencies_cc     (remote UpdateCloopInterfaces)
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    add_dependencies_cc (remote UpdateCloopInterfaces)
+endif()
 
-
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 ###############################################################################
 # EXECUTABLE fbserver
 ###############################################################################
@@ -62,3 +64,4 @@ add_src_unix(fbserver_src
 add_executable              (fbserver WIN32 ${fbserver_src})
 target_link_libraries       (fbserver remote common yvalve engine_common ${LIB_comctl32})
 set_target_properties       (fbserver PROPERTIES OUTPUT_NAME firebird)
+endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")

@@ -63,7 +63,7 @@ set(epp_master_files
     misc/codes.epp
 )
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 epp_process(boot    epp_boot_internal_files ${GPRE_BOOT_CMD} -lang_internal -n -ids -ocxx -m)
 epp_process(boot    epp_boot_ocxx_files     ${GPRE_BOOT_CMD} -lang_internal -n -ids -ocxx)
@@ -83,6 +83,7 @@ epp_process(master  epp_master_files        ${BOOT_GPRE_CMD} -n -m)
 #
 ################################################################################
 
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 ########################################
 # BUILD STEP databases
 ########################################
@@ -226,6 +227,7 @@ add_custom_target(msg_fdb
 )
 project_group(msg_fdb "Boot/Custom build steps")
 
+endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - databases, messages
 
 ########################################
 # BUILD_STEP parse
@@ -282,7 +284,7 @@ add_custom_target(UpdateCloopInterfaces
 )
 project_group(UpdateCloopInterfaces "Boot/Custom build steps")
 
-endif() # if (NOT CMAKE_CROSSCOMPILING)
+endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 
 ################################################################################
@@ -291,6 +293,7 @@ endif() # if (NOT CMAKE_CROSSCOMPILING)
 #
 ################################################################################
 
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 ########################################
 # LIBRARY boot_alice
 ########################################
@@ -346,6 +349,8 @@ endif() # if (NOT CMAKE_CROSSCOMPILING)
 
 add_library                 (burp ${burp_src} ${burp_generated_src_master})
 
+endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+
 
 ########################################
 # LIBRARY common
@@ -354,6 +359,11 @@ add_library                 (burp ${burp_src} ${burp_generated_src_master})
 file(GLOB common_src "common/*.cpp" "common/classes/*.cpp" "common/config/*.cpp" "common/os/${OS_DIR}/*.cpp" "common/sha2/*.cpp")
 file(GLOB_RECURSE common_include "common/*.h")
 
+# SimilarToRegex requires re2 library - only needed for server
+if (FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    list(FILTER common_src EXCLUDE REGEX ".*SimilarToRegex.cpp$")
+endif()
+
 if (APPLE)
     file(GLOB common_os_src "common/os/posix/*.cpp")
     list(REMOVE_ITEM common_os_src ${CMAKE_CURRENT_BINARY_DIR}/common/os/posix/mod_loader.cpp)
@@ -361,7 +371,9 @@ endif()
 
 add_library                 (common ${common_src} ${common_os_src} ${common_include})
 target_link_libraries       (common ${LIB_mpr} libtommath libtomcrypt decNumber)
-add_dependencies_cc         (common UpdateCloopInterfaces)
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    add_dependencies_cc     (common UpdateCloopInterfaces)
+endif()
 if (UNIX)
 target_link_libraries       (common dl)
 endif()
@@ -390,19 +402,22 @@ set(yvalve_src ${yvalve_src}
 add_src_win32(yvalve_src
     jrd/os/win32/ibinitdll.cpp
 )
-set(yvalve_generated_src
-    yvalve/array.epp
-    yvalve/blob.epp
-)
-add_epp_suffix(yvalve_generated_src boot)
-add_epp_suffix(yvalve_generated_src master)
+# ASI: These .epp files don't exist - the .cpp versions are already in yvalve_src via glob
+#set(yvalve_generated_src
+#    yvalve/array.epp
+#    yvalve/blob.epp
+#)
+#add_epp_suffix(yvalve_generated_src boot)
+#add_epp_suffix(yvalve_generated_src master)
 
 add_library                 (yvalve_common OBJECT ${yvalve_src} ${yvalve_include})
-add_dependencies_cc         (yvalve_common parse UpdateCloopInterfaces)
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    add_dependencies_cc     (yvalve_common parse UpdateCloopInterfaces)
+endif()
 
-if (NOT CMAKE_CROSSCOMPILING)
+if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
-add_library                 (boot_yvalve SHARED $<TARGET_OBJECTS:yvalve_common> ${yvalve_generated_src_boot} ${VERSION_RC})
+add_library                 (boot_yvalve SHARED $<TARGET_OBJECTS:yvalve_common> ${VERSION_RC})
 target_link_libraries       (boot_yvalve
     PRIVATE remote
     PRIVATE common
@@ -417,14 +432,14 @@ set_output_directory        (boot_yvalve . CURRENT_DIR)
 set_output_directory_unix   (boot_yvalve lib CURRENT_DIR)
 project_group               (boot_yvalve Boot)
 
-endif() # if (NOT CMAKE_CROSSCOMPILING)
+endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 
 ########################################
 # SHARED LIBRARY yvalve
 ########################################
 
-add_library                 (yvalve SHARED $<TARGET_OBJECTS:yvalve_common> ${yvalve_generated_src_master} ${VERSION_RC})
+add_library                 (yvalve SHARED $<TARGET_OBJECTS:yvalve_common> ${VERSION_RC})
 target_link_libraries       (yvalve
     PRIVATE remote
     PRIVATE common
@@ -434,12 +449,15 @@ target_link_libraries       (yvalve
     PUBLIC ${LIB_iconv}
     PUBLIC ${LIB_CoreFoundation}
 )
-add_dependencies_cc         (yvalve databases)
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
+    add_dependencies_cc     (yvalve databases)
+endif()
 set_exported_symbols        (yvalve firebird)
 set_output_directory_unix   (yvalve lib)
 set_target_properties       (yvalve PROPERTIES OUTPUT_NAME fbclient)
 
 
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 ########################################
 # SHARED LIBRARY boot_engine
 ########################################
@@ -518,7 +536,7 @@ set_exported_symbols        (engine fbplugin)
 file(GLOB intl_src "intl/*.cpp" "intl/*.h")
 
 add_library                 (intl SHARED ${intl_src} ${VERSION_RC})
-target_link_libraries       (intl common yvalve)
+target_link_libraries       (intl common yvalve ${ICU_LIBRARIES})
 set_target_properties       (intl PROPERTIES OUTPUT_NAME fbintl)
 set_output_directory        (intl intl)
 
@@ -582,7 +600,55 @@ set_target_properties       (legacy_auth PROPERTIES OUTPUT_NAME Legacy_Auth)
 set_output_directory        (legacy_auth plugins)
 set_exported_symbols        (legacy_auth fbplugin)
 
+########################################
+# INSTALL RULES (embedded/server components)
+########################################
 
+# Core engine plugin
+install(TARGETS engine
+    LIBRARY DESTINATION lib/firebird/plugins
+    RUNTIME DESTINATION bin/plugins
+)
+
+# International support
+install(TARGETS intl
+    LIBRARY DESTINATION lib/firebird/intl
+    RUNTIME DESTINATION bin/intl
+)
+
+# Utility library
+install(TARGETS ib_util
+    LIBRARY DESTINATION lib/firebird
+    RUNTIME DESTINATION bin
+)
+
+# Authentication plugins
+install(TARGETS srp legacy_auth legacy_usermanager
+    LIBRARY DESTINATION lib/firebird/plugins
+    RUNTIME DESTINATION bin/plugins
+)
+
+# UDR engine
+install(TARGETS udr_engine
+    LIBRARY DESTINATION lib/firebird/plugins
+    RUNTIME DESTINATION bin/plugins
+)
+
+# Configuration files
+install(FILES
+    ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
+    DESTINATION etc/firebird
+)
+
+# ICU DLLs for Windows
+if (WIN32)
+    file(GLOB ICU_DLLS "${CMAKE_SOURCE_DIR}/extern/icu/bin64/*.dll")
+    install(FILES ${ICU_DLLS} DESTINATION bin)
+endif()
+
+endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - engine and plugins
+
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 ################################################################################
 #
 # EXECUTABLES
@@ -857,6 +923,7 @@ endif()
 add_executable              (isql ${isql_src} ${isql_generated_src_master} ${VERSION_RC})
 target_link_libraries       (isql common yvalve)
 
+endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - executables
 
 ################################################################################
 #
@@ -864,9 +931,11 @@ target_link_libraries       (isql common yvalve)
 #
 ################################################################################
 
-add_subdirectory("gpre")
 add_subdirectory("remote")
-add_subdirectory("utilities")
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    add_subdirectory("gpre")
+    add_subdirectory("utilities")
+endif()
 
 ###############################################################################
 #
@@ -906,8 +975,10 @@ add_custom_target(copy_files
     # headers
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/src/include/gen/iberror.h ${output_dir}/include/iberror.h
 )
-add_dependencies_cc     (copy_files databases)
-add_dependencies_unix_cc(copy_files makeHeader)
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
+    add_dependencies_cc     (copy_files databases)
+    add_dependencies_unix_cc(copy_files makeHeader)
+endif()
 project_group(copy_files "Custom build steps")
 
 # headers
@@ -992,7 +1063,7 @@ if (UNIX)
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/examples/readme ${output_dir}/examples/README
     )
 
-    if (NOT CMAKE_CROSSCOMPILING)
+    if (NOT CMAKE_CROSSCOMPILING AND FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 
     add_executable          (makeHeader misc/makeHeader.cpp)
     set_output_directory    (makeHeader . CURRENT_DIR)
@@ -1016,7 +1087,7 @@ if (UNIX)
         COMMAND makeHeader < ibase.h > ${output_dir}/include/ibase.h
     )
 
-    endif() # if (NOT CMAKE_CROSSCOMPILING)
+    endif() # if (NOT CMAKE_CROSSCOMPILING AND FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 endif()
 
 
