@@ -225,7 +225,7 @@ inline void check_copy_incr(char*& to, const char ch, const char* const string)
 %token DESC
 %token DISTINCT
 %token DO
-%token DOMAIN
+%token KW_DOMAIN
 %token DROP
 %token ELSE
 %token END
@@ -305,7 +305,7 @@ inline void check_copy_incr(char*& to, const char ch, const char* const string)
 %token ORDER
 %token OUTER
 %token OUTPUT_TYPE
-%token OVERFLOW
+%token KW_OVERFLOW
 %token PAGE
 %token PAGES
 %token KW_PAGE_SIZE
@@ -920,7 +920,7 @@ create_clause	: EXCEPTION exception_clause
 			{ $$ = $2; }
 		| DATABASE db_clause
 			{ $$ = $2; }
-		| DOMAIN domain_clause
+		| KW_DOMAIN domain_clause
 			{ $$ = $2; }
 		| SHADOW shadow_clause
 			{ $$ = $2; }
@@ -948,7 +948,7 @@ recreate_clause	: PROCEDURE rprocedure_clause
 		| TRIGGER rtrigger_clause
 			{ $$ = $2; }
 /*
-		| DOMAIN rdomain_clause
+		| KW_DOMAIN rdomain_clause
 			{ $$ = $2; }
 */
 		| EXCEPTION rexception_clause
@@ -2352,7 +2352,7 @@ alter_clause	: EXCEPTION alter_exception_clause
 		| DATABASE init_alter_db alter_db
 			{ $$ = make_node (nod_mod_database, (int) e_adb_count,
 				make_list ($3)); }
-		| DOMAIN alter_column_name alter_domain_ops
+		| KW_DOMAIN alter_column_name alter_domain_ops
 			{ $$ = make_node (nod_mod_domain, (int) e_alt_count,
 										  $2, make_list ($3)); }
 		| INDEX alter_index_clause
@@ -2642,7 +2642,7 @@ drop_clause	: EXCEPTION symbol_exception_name
 			{ $$ = make_node (nod_del_view, (int) 1, $2); }
 		| FILTER symbol_filter_name
 			{ $$ = make_node (nod_del_filter, (int) 1, $2); }
-		| DOMAIN symbol_domain_name
+		| KW_DOMAIN symbol_domain_name
 			{ $$ = make_node (nod_del_domain, (int) 1, $2); }
 		| EXTERNAL FUNCTION symbol_UDF_name
 			{ $$ = make_node (nod_del_udf, (int) 1, $3); }
@@ -3303,7 +3303,7 @@ ddl_type0	: DATABASE
 				{ $$ = MAKE_const_slong(ddl_database); }
 			;
 
-ddl_type1	: DOMAIN
+ddl_type1	: KW_DOMAIN
 				{ $$ = MAKE_const_slong(ddl_domain); }
 			| TABLE
 				{ $$ = MAKE_const_slong(ddl_relation); }
@@ -5124,7 +5124,7 @@ non_reserved_word :
 //	| DB_KEY
 	| DESC
 	| DO
-	| DOMAIN
+	| KW_DOMAIN
 	| ENTRY_POINT
 	| EXCEPTION
 	| EXIT
@@ -5146,7 +5146,7 @@ non_reserved_word :
 	| NAMES
 	| OPTION
 	| OUTPUT_TYPE
-	| OVERFLOW
+	| KW_OVERFLOW
 	| PAGE
 	| PAGES
 	| KW_PAGE_SIZE

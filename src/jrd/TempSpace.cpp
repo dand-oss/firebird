@@ -264,12 +264,12 @@ void TempSpace::extend(size_t size)
 			fb_assert(head == tail);
 			delete head;
 			head = tail = NULL;
-			size = FB_ALIGN(logicalSize, minBlockSize);
+			size = FB_ALIGN(logicalSize, (offset_t)minBlockSize);
 			physicalSize = size;
 		}
 		else
 		{
-			size = FB_ALIGN(logicalSize - physicalSize, minBlockSize);
+			size = FB_ALIGN(logicalSize - physicalSize, (offset_t)minBlockSize);
 			physicalSize += size;
 		}
 

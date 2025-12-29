@@ -157,7 +157,7 @@ static const TOK tokens[] =
 	{DISCONNECT, "DISCONNECT", 2, false},
 	{DISTINCT, "DISTINCT", 1, false},
 	{DO, "DO", 1, false},
-	{DOMAIN, "DOMAIN", 1, false},
+	{KW_DOMAIN, "DOMAIN", 1, false},
 #ifdef POOL_DUMP
 	{DUMP, "DUMP", 2, true},
 #endif
@@ -274,7 +274,7 @@ static const TOK tokens[] =
 	{OS_NAME, "OS_NAME", 2, false},
 	{OUTER, "OUTER", 1, false},
 	{OUTPUT_TYPE, "OUTPUT_TYPE", 1, false},
-	{OVERFLOW, "OVERFLOW", 1, false},
+	{KW_OVERFLOW, "OVERFLOW", 1, false},
 	{OVERLAY, "OVERLAY", 2, false},
 	{PAD, "PAD", 2, true},
 	{PAGE, "PAGE", 1, false},

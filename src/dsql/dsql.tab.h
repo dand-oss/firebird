@@ -42,7 +42,7 @@
 #define DESC 298
 #define DISTINCT 299
 #define DO 300
-#define DOMAIN 301
+#define KW_DOMAIN 301
 #define DROP 302
 #define ELSE 303
 #define END 304
@@ -122,7 +122,7 @@
 #define ORDER 378
 #define OUTER 379
 #define OUTPUT_TYPE 380
-#define OVERFLOW 381
+#define KW_OVERFLOW 381
 #define PAGE 382
 #define PAGES 383
 #define KW_PAGE_SIZE 384

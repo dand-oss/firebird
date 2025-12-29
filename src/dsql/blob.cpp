@@ -66,7 +66,7 @@ static ISC_LONG
    SQLCODE;		/* SQL status code */
 static const short
    isc_0l = 307;
-static const char
+static const unsigned char
    isc_0 [] = {
       blr_version4,
       blr_begin, 
@@ -127,7 +127,7 @@ static const char
 
 static const short
    isc_10l = 297;
-static const char
+static const unsigned char
    isc_10 [] = {
       blr_version4,
       blr_begin, 

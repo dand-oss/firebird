@@ -69,8 +69,12 @@
 #define U_HAVE_UINT64_T 0
 
 /* Define 64 bit limits */
+#ifndef INT64_C
 #define INT64_C(x) x
+#endif
+#ifndef UINT64_C
 #define UINT64_C(x) x
+#endif
 
 /* Define whether namespace is supported */
 #define U_HAVE_NAMESPACE 1

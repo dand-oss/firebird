@@ -53,8 +53,8 @@ using Jrd::idx_metadata;
 using Jrd::idx_numeric;
 using Jrd::idx_descending;
 
-#define INDEX(id, flag, rel, unique, count) {(id), (flag), (UCHAR) (rel), (unique), (count), {
-#define SEGMENT(fld, type) {(fld), (type)}
+#define INDEX(id, flag, rel, unique, count) {(UCHAR)(id), (UCHAR)(flag), (UCHAR)(rel), (UCHAR)(unique), (UCHAR)(count), {
+#define SEGMENT(fld, type) {(UCHAR)(fld), (UCHAR)(type)}
 
 static const struct ini_idx_t indices[] =
 {
