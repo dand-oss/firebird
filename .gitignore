@@ -1,4 +1,5 @@
 temp/
+temp/
 gen/
 output_Win32/
 output_x64/
@@ -11,3 +12,8 @@ config.status
 configure
 libtool
 *.log
+err_log
+err_log.txt
+*.swp
+*~
+*.o
