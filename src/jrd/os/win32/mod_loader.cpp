@@ -99,10 +99,10 @@ public:
                     "msvcr110.dll",
 #elif _MSC_VER == 1800
 					"mscvr120.dll",
-#elif _MSC_VER == 1900
-					"vcruntime140.dll",
+#elif _MSC_VER >= 1900
+					"vcruntime140.dll",  // VS 2015, 2017, 2019, 2022+
 #else
-                    #error Specify CRT DLL name here !
+                    #error Specify CRT DLL name here (unknown _MSC_VER)!
 #endif
 				&ackd))
 		{

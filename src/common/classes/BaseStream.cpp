@@ -32,12 +32,20 @@
 #include <unistd.h>
 #endif
 
+#ifdef WIN_NT
+#include <io.h>
+#endif
+
 namespace MsgFormat
 {
 
 int RawStream::write(const void* str, unsigned int n)
 {
+#ifdef WIN_NT
+	return ::_write(m_stream, str, n);
+#else
 	return ::write(m_stream, str, n);
+#endif
 }
 
 /////////////////////

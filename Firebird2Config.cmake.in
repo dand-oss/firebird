@@ -1,0 +1,9 @@
+@PACKAGE_INIT@
+
+include(CMakeFindDependencyMacro)
+
+# Include our exported targets
+include("${CMAKE_CURRENT_LIST_DIR}/Firebird2Targets.cmake")
+
+# Check for required components
+check_required_components(Firebird2)
