@@ -254,6 +254,9 @@ if (WIN32)
         set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} /MP ${disable_msvc_warnings}")
         set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP ${disable_msvc_warnings}")
 
+        # Use pure C++ ttmath implementation (avoid x64 MASM assembly)
+        add_definitions(-DTTMATH_NOASM)
+
         if (MSVC_STATIC_RUNTIME)
             set(CMAKE_C_FLAGS_DEBUG "${CMAKE_C_FLAGS_DEBUG} /MTd")
             set(CMAKE_C_FLAGS_RELEASE "${CMAKE_C_FLAGS_RELEASE} /MT")
