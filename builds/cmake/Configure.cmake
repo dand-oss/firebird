@@ -115,6 +115,166 @@ string(REPLACE "." "" SHRLIB_EXT ${SHRLIB_EXT})
 set(CASE_SENSITIVITY "true")
 set(SUPPORT_RAW_DEVICES 1)
 
+################################################################################
+# WINDOWS PRE-SET VALUES
+# Set known results BEFORE checks to skip unnecessary compiler invocations
+################################################################################
+
+if (WIN32)
+    set(ENABLE_BINRELOC 0)
+    set(SUPPORT_RAW_DEVICES 0)
+    set(WIN_NT 1)
+    set(CASE_SENSITIVITY "false")
+
+    # Headers that exist on Windows
+    set(HAVE_ASSERT_H 1 CACHE INTERNAL "")
+    set(HAVE_CTYPE_H 1 CACHE INTERNAL "")
+    set(HAVE_ERRNO_H 1 CACHE INTERNAL "")
+    set(HAVE_FCNTL_H 1 CACHE INTERNAL "")
+    set(HAVE_FLOAT_H 1 CACHE INTERNAL "")
+    set(HAVE_INTTYPES_H 1 CACHE INTERNAL "")
+    set(HAVE_IO_H 1 CACHE INTERNAL "")
+    set(HAVE_LIMITS_H 1 CACHE INTERNAL "")
+    set(HAVE_LOCALE_H 1 CACHE INTERNAL "")
+    set(HAVE_MATH_H 1 CACHE INTERNAL "")
+    set(HAVE_MEMORY_H 1 CACHE INTERNAL "")
+    set(HAVE_SETJMP_H 1 CACHE INTERNAL "")
+    set(HAVE_SIGNAL_H 1 CACHE INTERNAL "")
+    set(HAVE_STDARG_H 1 CACHE INTERNAL "")
+    set(HAVE_STDINT_H 1 CACHE INTERNAL "")
+    set(HAVE_STDLIB_H 1 CACHE INTERNAL "")
+    set(HAVE_STRING_H 1 CACHE INTERNAL "")
+    set(HAVE_SYS_STAT_H 1 CACHE INTERNAL "")
+    set(HAVE_SYS_TIMEB_H 1 CACHE INTERNAL "")
+    set(HAVE_SYS_TYPES_H 1 CACHE INTERNAL "")
+    set(HAVE_WINSOCK2_H 1 CACHE INTERNAL "")
+
+    # Headers that do NOT exist on Windows (POSIX-only)
+    set(HAVE_AIO_H 0 CACHE INTERNAL "")
+    set(HAVE_ATOMIC_H 0 CACHE INTERNAL "")
+    set(HAVE_ATOMIC_OPS_H 0 CACHE INTERNAL "")
+    set(HAVE_CRYPT_H 0 CACHE INTERNAL "")
+    set(HAVE_DIRENT_H 0 CACHE INTERNAL "")
+    set(HAVE_DLFCN_H 0 CACHE INTERNAL "")
+    set(HAVE_EDITLINE_H 0 CACHE INTERNAL "")
+    set(HAVE_GRP_H 0 CACHE INTERNAL "")
+    set(HAVE_ICONV_H 0 CACHE INTERNAL "")
+    set(HAVE_LANGINFO_H 0 CACHE INTERNAL "")
+    set(HAVE_LIBIO_H 0 CACHE INTERNAL "")
+    set(HAVE_LINUX_FALLOC_H 0 CACHE INTERNAL "")
+    set(HAVE_MNTENT_H 0 CACHE INTERNAL "")
+    set(HAVE_MNTTAB_H 0 CACHE INTERNAL "")
+    set(HAVE_NDIR_H 0 CACHE INTERNAL "")
+    set(HAVE_NETCONFIG_H 0 CACHE INTERNAL "")
+    set(HAVE_NETINET_IN_H 0 CACHE INTERNAL "")
+    set(HAVE_POLL_H 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_H 0 CACHE INTERNAL "")
+    set(HAVE_PWD_H 0 CACHE INTERNAL "")
+    set(HAVE_RPC_RPC_H 0 CACHE INTERNAL "")
+    set(HAVE_RPC_XDR_H 0 CACHE INTERNAL "")
+    set(HAVE_SEMAPHORE_H 0 CACHE INTERNAL "")
+    set(HAVE_SOCKET_H 0 CACHE INTERNAL "")
+    set(HAVE_STRINGS_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_DIR_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_FILE_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_IOCTL_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_IPC_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_MNTENT_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_MNTTAB_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_MOUNT_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_NDIR_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_PARAM_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_RESOURCE_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SEM_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SELECT_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SIGINFO_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SIGNAL_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SOCKET_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SOCKIO_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_SYSCALL_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_TIME_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_UIO_H 0 CACHE INTERNAL "")
+    set(HAVE_SYS_WAIT_H 0 CACHE INTERNAL "")
+    set(HAVE_TERMIO_H 0 CACHE INTERNAL "")
+    set(HAVE_TERMIOS_H 0 CACHE INTERNAL "")
+    set(HAVE_UNISTD_H 0 CACHE INTERNAL "")
+    set(HAVE_VARARGS_H 0 CACHE INTERNAL "")
+    set(HAVE_VFORK_H 0 CACHE INTERNAL "")
+    set(HAVE_ZLIB_H 0 CACHE INTERNAL "")
+
+    # Functions that exist on Windows (MSVC CRT)
+    set(HAVE_DIRNAME 1 CACHE INTERNAL "")
+    set(HAVE_FSYNC 0 CACHE INTERNAL "")  # Windows uses _commit
+    set(HAVE_GETCWD 1 CACHE INTERNAL "")
+    set(HAVE_GETPAGESIZE 1 CACHE INTERNAL "")
+    set(HAVE_SNPRINTF 1 CACHE INTERNAL "")
+    set(HAVE_STRDUP 1 CACHE INTERNAL "")
+    set(HAVE_STRICMP 1 CACHE INTERNAL "")
+    set(HAVE_STRNICMP 1 CACHE INTERNAL "")
+    set(HAVE_SWAB 1 CACHE INTERNAL "")
+    set(HAVE__SWAB 1 CACHE INTERNAL "")
+    set(HAVE_TIME 1 CACHE INTERNAL "")
+    set(HAVE_VSNPRINTF 1 CACHE INTERNAL "")
+
+    # Functions that do NOT exist on Windows (POSIX-only)
+    set(HAVE_ACCEPT4 0 CACHE INTERNAL "")
+    set(HAVE_AO_COMPARE_AND_SWAP_FULL 0 CACHE INTERNAL "")
+    set(HAVE_CLOCK_GETTIME 0 CACHE INTERNAL "")
+    set(HAVE_CTIME_R 0 CACHE INTERNAL "")
+    set(HAVE_FALLOCATE 0 CACHE INTERNAL "")
+    set(HAVE_FCHMOD 0 CACHE INTERNAL "")
+    set(HAVE_FLOCK 0 CACHE INTERNAL "")
+    set(HAVE_FORK 0 CACHE INTERNAL "")
+    set(HAVE_GETMNTENT 0 CACHE INTERNAL "")
+    set(HAVE_GETRLIMIT 0 CACHE INTERNAL "")
+    set(HAVE_GETTIMEOFDAY 0 CACHE INTERNAL "")
+    set(HAVE_GETWD 0 CACHE INTERNAL "")
+    set(HAVE_GMTIME_R 0 CACHE INTERNAL "")
+    set(HAVE_INITGROUPS 0 CACHE INTERNAL "")
+    set(HAVE_LOCALTIME_R 0 CACHE INTERNAL "")
+    set(HAVE_MKSTEMP 0 CACHE INTERNAL "")
+    set(HAVE_MMAP 0 CACHE INTERNAL "")
+    set(HAVE_NANOSLEEP 0 CACHE INTERNAL "")
+    set(HAVE_POLL 0 CACHE INTERNAL "")
+    set(HAVE_POSIX_FADVISE 0 CACHE INTERNAL "")
+    set(HAVE_PREAD 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_CANCEL 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_KEY_CREATE 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_KEYCREATE 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_MUTEXATTR_SETPROTOCOL 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_MUTEXATTR_SETROBUST_NP 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_MUTEX_CONSISTENT_NP 0 CACHE INTERNAL "")
+    set(HAVE_PTHREAD_RWLOCKATTR_SETKIND_NP 0 CACHE INTERNAL "")
+    set(HAVE_PWRITE 0 CACHE INTERNAL "")
+    set(HAVE_QSORT_R 0 CACHE INTERNAL "")
+    set(HAVE_SEMTIMEDOP 0 CACHE INTERNAL "")
+    set(HAVE_SETITIMER 0 CACHE INTERNAL "")
+    set(HAVE_SETMNTENT 0 CACHE INTERNAL "")
+    set(HAVE_SETPGID 0 CACHE INTERNAL "")
+    set(HAVE_SETPGRP 0 CACHE INTERNAL "")
+    set(HAVE_SETRLIMIT 0 CACHE INTERNAL "")
+    set(HAVE_SIGACTION 0 CACHE INTERNAL "")
+    set(HAVE_SIGSET 0 CACHE INTERNAL "")
+    set(HAVE_STRCASECMP 0 CACHE INTERNAL "")
+    set(HAVE_STRERROR_R 0 CACHE INTERNAL "")
+    set(HAVE_STRNCASECMP 0 CACHE INTERNAL "")
+    set(HAVE_TCGETATTR 0 CACHE INTERNAL "")
+    set(HAVE_TIMES 0 CACHE INTERNAL "")
+    set(HAVE_VFORK 0 CACHE INTERNAL "")
+
+    # Windows-specific extras
+    set(HAVE_CTIME_S 1 CACHE INTERNAL "")
+    set(HAVE_LOCALTIME_S 1 CACHE INTERNAL "")
+
+endif(WIN32)
+
+################################################################################
+# UNIX/LINUX HEADER AND FUNCTION CHECKS
+# Only run these checks on non-Windows platforms
+################################################################################
+
+if (NOT WIN32)
+
 set(include_files_list
     aio.h
     assert.h
@@ -250,6 +410,13 @@ if (APPLE)
     set(HAVE_QSORT_R 0 CACHE STRING "Disabled on OS X" FORCE)
 endif()
 
+endif() # NOT WIN32
+
+################################################################################
+# CROSS-PLATFORM CHECKS
+# These work on all platforms - let the compiler figure out sizes
+################################################################################
+
 # Cross-platform type size checks
 check_type_size(long SIZEOF_LONG)
 check_type_size(size_t SIZEOF_SIZE_T)
@@ -345,12 +512,7 @@ endif()
 
 ########################################
 
-if (WIN32)
-    set(ENABLE_BINRELOC 0)
-    set(SUPPORT_RAW_DEVICES 0)
-    set(WIN_NT 1)
-    set(CASE_SENSITIVITY "false")
-endif(WIN32)
+# WIN32 settings moved to pre-cache block at top of file
 
 if (APPLE)
     set(ENABLE_BINRELOC 0)
