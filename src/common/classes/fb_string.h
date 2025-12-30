@@ -597,26 +597,26 @@ namespace Firebird
 	{
 		typedef StringBase<Comparator> StringType;
 	protected:
-		inline StringBase<Comparator>(const_pointer p1, size_type n1,
+		inline StringBase(const_pointer p1, size_type n1,
 						  const_pointer p2, size_type n2) :
 			   AbstractString(p1, n1, p2, n2) {}
 	private:
 		inline StringType add(const_pointer s, size_type n) const
 		{
-			return StringBase<Comparator>(c_str(), length(), s, n);
+			return StringBase(c_str(), length(), s, n);
 		}
 	public:
-		inline StringBase<Comparator>() : AbstractString() {}
-		inline StringBase<Comparator>(const StringType& v) : AbstractString(v) {}
-		inline StringBase<Comparator>(const_pointer s, size_type n) : AbstractString(n, s) {}
-		inline StringBase<Comparator>(const_pointer s) : AbstractString(strlen(s), s) {}
-		inline explicit StringBase<Comparator>(const unsigned char* s) : AbstractString(strlen((char*)s), (char*)s) {}
-		inline StringBase<Comparator>(size_type n, char_type c) : AbstractString(n, c) {}
-		//inline explicit StringBase<Comparator>(char_type c) : AbstractString(1, c) {}
-		inline StringBase<Comparator>(const_iterator first, const_iterator last) : AbstractString(last - first, first) {}
-		inline explicit StringBase<Comparator>(MemoryPool& p) : AbstractString(p) {}
-		inline StringBase<Comparator>(MemoryPool& p, const AbstractString& v) : AbstractString(p, v) {}
-		inline StringBase<Comparator>(MemoryPool& p, const char_type* s, size_type l) : AbstractString(p, s, l) {}
+		inline StringBase() : AbstractString() {}
+		inline StringBase(const StringType& v) : AbstractString(v) {}
+		inline StringBase(const_pointer s, size_type n) : AbstractString(n, s) {}
+		inline StringBase(const_pointer s) : AbstractString(strlen(s), s) {}
+		inline explicit StringBase(const unsigned char* s) : AbstractString(strlen((char*)s), (char*)s) {}
+		inline StringBase(size_type n, char_type c) : AbstractString(n, c) {}
+		//inline explicit StringBase(char_type c) : AbstractString(1, c) {}
+		inline StringBase(const_iterator first, const_iterator last) : AbstractString(last - first, first) {}
+		inline explicit StringBase(MemoryPool& p) : AbstractString(p) {}
+		inline StringBase(MemoryPool& p, const AbstractString& v) : AbstractString(p, v) {}
+		inline StringBase(MemoryPool& p, const char_type* s, size_type l) : AbstractString(p, s, l) {}
 
 		inline StringType& assign(const StringType& str)
 		{
