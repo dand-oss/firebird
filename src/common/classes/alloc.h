@@ -55,7 +55,7 @@
 //#if defined (_MSC_VER)
 //#define THROW_BAD_ALLOC
 //#else
-#define THROW_BAD_ALLOC throw (std::bad_alloc)
+#define THROW_BAD_ALLOC
 //#endif
 
 #ifdef USE_VALGRIND
@@ -466,8 +466,7 @@ template <typename SubsystemThreadData, typename SubsystemPool>
 class SubsystemContextPoolHolder : public ContextPoolHolder
 {
 public:
-	SubsystemContextPoolHolder <SubsystemThreadData, SubsystemPool>
-	(
+	SubsystemContextPoolHolder(
 		SubsystemThreadData* subThreadData,
 		SubsystemPool* newPool
 	)

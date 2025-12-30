@@ -62,7 +62,7 @@ class AutoPtr
 private:
 	Where* ptr;
 public:
-	AutoPtr<Where, Clear>(Where* v = NULL)
+	AutoPtr(Where* v = NULL)
 		: ptr(v)
 	{}
 
@@ -109,8 +109,8 @@ public:
 	}
 
 private:
-	AutoPtr<Where, Clear>(AutoPtr<Where, Clear>&);
-	void operator=(AutoPtr<Where, Clear>&);
+	AutoPtr(AutoPtr&);
+	void operator=(AutoPtr&);
 };
 
 
