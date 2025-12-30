@@ -266,6 +266,13 @@ if (WIN32)
     set(HAVE_CTIME_S 1 CACHE INTERNAL "")
     set(HAVE_LOCALTIME_S 1 CACHE INTERNAL "")
 
+    # Types that don't exist on Windows (POSIX-only)
+    set(HAVE_PID_T "" CACHE INTERNAL "")
+    set(HAVE_CADDR_T "" CACHE INTERNAL "")
+    set(HAVE_GID_T "" CACHE INTERNAL "")
+    set(HAVE_UID_T "" CACHE INTERNAL "")
+    set(HAVE_SOCKLEN_T "" CACHE INTERNAL "")
+
 endif(WIN32)
 
 ################################################################################
@@ -421,13 +428,17 @@ endif() # NOT WIN32
 check_type_size(long SIZEOF_LONG)
 check_type_size(size_t SIZEOF_SIZE_T)
 check_type_size("void *" SIZEOF_VOID_P)
-check_type_size(off_t HAVE_OFF_T)
-check_type_size(pid_t HAVE_PID_T)
 check_type_size(size_t HAVE_SIZE_T)
-check_type_size(caddr_t HAVE_CADDR_T)
 
-if (${HAVE_OFF_T} AND ${HAVE_OFF_T} EQUAL 8)
-    set(_FILE_OFFSET_BITS 64)
+if (NOT WIN32)
+    # POSIX types - only check on UNIX
+    check_type_size(off_t HAVE_OFF_T)
+    check_type_size(pid_t HAVE_PID_T)
+    check_type_size(caddr_t HAVE_CADDR_T)
+
+    if (${HAVE_OFF_T} AND ${HAVE_OFF_T} EQUAL 8)
+        set(_FILE_OFFSET_BITS 64)
+    endif()
 endif()
 
 test_big_endian(WORDS_BIGENDIAN)
