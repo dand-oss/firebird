@@ -57,16 +57,23 @@ Lex::Lex(const char* punctuation, const LEX_flags debugFlags)
 {
 	lineComment = NULL;
 	commentStart = NULL;
+	commentEnd = NULL;
 	memset (charTableArray, 0, sizeof (charTableArray));
 	setCharacters (TYPE_PUNCT, punctuation);
 	setCharacters (TYPE_WHITE, WHITE_SPACE);
 	setCharacters (TYPE_DIGIT, "0123456789");
 	ptr = end = NULL;
 	inputStream = NULL;
+	priorInputStream = NULL;
+	tokenInputStream = NULL;
 	tokenType = TT_NONE;
 	lineNumber = 0;
+	tokenLineNumber = 0;
+	priorLineNumber = 0;
+	tokenOffset = 0;
 	continuationChar = 0;
 	captureStart = captureEnd = 0;
+	eol = false;
 	flags = debugFlags;
 }
 
