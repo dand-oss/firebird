@@ -1200,9 +1200,11 @@ OptimizerRetrieval::OptimizerRetrieval(MemoryPool& p, OptimizerBlk* opt,
 
 	// Allocate needed indexScratches
 
-	index_desc* idx = csb_tail->csb_idx->items;
-	for (int i = 0; i < csb_tail->csb_indices; ++i, ++idx) {
-		indexScratches.add( IndexScratch(p, tdbb, idx, csb_tail) );
+	if (csb_tail->csb_idx) {
+		index_desc* idx = csb_tail->csb_idx->items;
+		for (int i = 0; i < csb_tail->csb_indices; ++i, ++idx) {
+			indexScratches.add( IndexScratch(p, tdbb, idx, csb_tail) );
+		}
 	}
 
 	inversionCandidates.shrink(0);

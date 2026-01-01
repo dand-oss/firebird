@@ -383,7 +383,7 @@ private:
 		~DatabaseContextHolder()
 		{
 			Database* dbb = tdbb->getDatabase();
-			if (dbb->checkHandle())
+			if (dbb && dbb->checkHandle())
 			{
 				--dbb->dbb_use_count;
 			}
