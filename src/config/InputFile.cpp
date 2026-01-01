@@ -76,7 +76,7 @@ InputFile::~InputFile()
 {
 	close();
 
-	for (FileChange *change; change = changes;)
+	for (FileChange *change; (change = changes) != nullptr;)
 	{
 		changes = change->next;
 		delete change;

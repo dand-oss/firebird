@@ -92,7 +92,7 @@ void Stream::putSegment(int length, const char *ptr, bool copy)
 
 	if (!segments)
 	{
-		if (copyFlag = copy)
+		if ((copyFlag = copy))
 		{
 			allocSegment (MAX (length, minSegment));
 			current->length = length;
@@ -401,7 +401,7 @@ void Stream::clear()
 {
 	Segment *segment;
 
-	while (segment = segments)
+	while ((segment = segments) != nullptr)
 	{
 		segments = segment->next;
 		if (segment != &first)
@@ -584,7 +584,7 @@ void Stream::truncate(int length)
 			current = segment;
 			current->length = length - n;
 			totalLength = length;
-			while (segment = current->next)
+			while ((segment = current->next) != nullptr)
 			{
 				current->next = segment->next;
 				delete[] (char*) segment; // Was deallocation bug

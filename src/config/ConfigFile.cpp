@@ -99,7 +99,7 @@ ConfigFile::~ConfigFile()
 
 	for (int n = 0; n < HASH_SIZE; ++n)
 	{
-		for (Element *element; element = hashTable [n];)
+		for (Element *element; (element = hashTable [n]) != nullptr;)
 		{
 			hashTable [n] = element->sibling;
 			delete element;
