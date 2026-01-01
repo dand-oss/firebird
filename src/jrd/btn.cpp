@@ -637,7 +637,8 @@ UCHAR* writeJumpNode(IndexJumpNode* jumpNode, UCHAR* pagePointer, UCHAR flags)
 	}
 	put_short(pagePointer, jumpNode->offset);
 	pagePointer += sizeof(USHORT);
-	memmove(pagePointer, jumpNode->data, jumpNode->length);
+	if (jumpNode->length)
+		memmove(pagePointer, jumpNode->data, jumpNode->length);
 	pagePointer += jumpNode->length;
 	return pagePointer;
 }
@@ -915,7 +916,7 @@ UCHAR* writeNode(IndexNode* indexNode, UCHAR* pagePointer, UCHAR flags,
 		}
 
 		// Store data
-		if (withData) {
+		if (withData && indexNode->length) {
 			memcpy(pagePointer, indexNode->data, indexNode->length);
 		}
 		pagePointer += indexNode->length;
