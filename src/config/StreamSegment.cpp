@@ -57,7 +57,7 @@ void StreamSegment::setStream(Stream *stream)
 {
 	remaining = stream->totalLength;
 
-	if (segment = stream->segments)
+	if ((segment = stream->segments) != nullptr)
 	{
 		data = segment->address;
 		available = segment->length;

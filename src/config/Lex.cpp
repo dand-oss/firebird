@@ -157,7 +157,7 @@ void Lex::getToken()
 	eol = false;
 	skipWhite();
 
-	if (tokenInputStream = inputStream)
+	if ((tokenInputStream = inputStream) != nullptr)
 		tokenLineNumber = inputStream->lineNumber;
 
 	if (ptr >= end)
