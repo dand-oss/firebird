@@ -36,6 +36,9 @@ asv_cmake_defaults( )
 # Debug-specific defines (matches autotools DEV_BUILD)
 add_compile_definitions($<$<CONFIG:Debug>:DEV_BUILD>)
 
+# Vulcan namespace - prevents ODR violation with two ConfigFile classes
+add_compile_definitions(NAMESPACE=Vulcan)
+
 # Build options
 option(FIREBIRD_BUILD_FBCLIENT "Build remote client library (libfbclient2)" ON)
 option(FIREBIRD_BUILD_FBEMBED "Build embedded library (libfbembed2)" ON)
