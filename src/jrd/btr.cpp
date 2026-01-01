@@ -5961,7 +5961,8 @@ static void generate_jump_nodes(thread_db* tdbb, btree_page* page,
 				// Push node on end in list
 				jumpNodes->add(jumpNode);
 				// Store new data in jumpKey, so a new jump node can calculate prefix
-				memcpy(jumpData + jumpNode.prefix, jumpNode.data, jumpNode.length);
+				if (jumpNode.length)
+					memcpy(jumpData + jumpNode.prefix, jumpNode.data, jumpNode.length);
 				jumpLength = jumpNode.length + jumpNode.prefix;
 				// Check if this could be our split point (if we need to split)
 				if (splitIndex && !*splitIndex && (pointer > halfpoint)) {
@@ -6016,7 +6017,8 @@ static void generate_jump_nodes(thread_db* tdbb, btree_page* page,
 				// Push node on end in list
 				jumpNodes->add(jumpNode);
 				// Store new data in jumpKey, so a new jump node can calculate prefix
-				memcpy(jumpData + jumpNode.prefix, jumpNode.data, jumpNode.length);
+				if (jumpNode.length)
+					memcpy(jumpData + jumpNode.prefix, jumpNode.data, jumpNode.length);
 				jumpLength = jumpNode.length + jumpNode.prefix;
 				// Check if this could be our split point (if we need to split)
 				if (splitIndex && !*splitIndex && (pointer > halfpoint)) {
@@ -6189,7 +6191,8 @@ static SLONG insert_node(thread_db* tdbb,
 	// First, store needed data for beforeInsertNode into tempData.
 	HalfStaticArray<UCHAR, MAX_KEY> tempBuf(*tdbb->getDefaultPool());
 	UCHAR* tempData = tempBuf.getBuffer(newLength);
-	memcpy(tempData, beforeInsertNode.data + newPrefix - beforeInsertNode.prefix, newLength);
+	if (newLength)
+		memcpy(tempData, beforeInsertNode.data + newPrefix - beforeInsertNode.prefix, newLength);
 
 	beforeInsertNode.prefix = newPrefix;
 	beforeInsertNode.length = newLength;
