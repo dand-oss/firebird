@@ -378,6 +378,11 @@ if (UNIX)
 target_link_libraries       (common dl)
 endif()
 
+# Use system malloc for ASAN/Valgrind compatibility
+if(USE_SYSTEM_MALLOC)
+    target_compile_definitions(common PRIVATE USE_SYSTEM_MALLOC)
+endif()
+
 
 ################################################################################
 #
