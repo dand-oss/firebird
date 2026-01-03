@@ -49,6 +49,274 @@
 #endif
 #endif	// USE_VALGRIND
 
+#ifdef USE_SYSTEM_MALLOC
+//=============================================================================
+// USE_SYSTEM_MALLOC Implementation
+// Simple wrapper around malloc/free for ASAN/Valgrind compatibility
+//=============================================================================
+
+#ifndef TLS_CLASS
+TLS_DECLARE(Firebird::MemoryPool*, contextPool);
+#else
+TLS_DECLARE(Firebird::MemoryPool*, *contextPoolPtr);
+#endif
+
+namespace Firebird {
+
+MemoryStats* MemoryPool::default_stats_group = NULL;
+MemoryPool* MemoryPool::processMemoryPool = NULL;
+
+MemoryPool::MemoryPool(MemoryPool* _parent, MemoryStats& _stats)
+	: used_memory(0), parent(_parent), stats(&_stats)
+{
+}
+
+inline void MemoryPool::increment_usage(size_t size)
+{
+	for (MemoryStats* statistics = stats; statistics; statistics = statistics->mst_parent)
+	{
+		const size_t temp = statistics->mst_usage += size;
+		if (temp > statistics->mst_max_usage)
+			statistics->mst_max_usage = temp;
+	}
+	used_memory += size;
+}
+
+inline void MemoryPool::decrement_usage(size_t size)
+{
+	for (MemoryStats* statistics = stats; statistics; statistics = statistics->mst_parent)
+	{
+		statistics->mst_usage -= size;
+	}
+	used_memory -= size;
+}
+
+MemoryPool* MemoryPool::setContextPool(MemoryPool* newPool)
+{
+#ifndef TLS_CLASS
+	MemoryPool* const old = TLS_GET(contextPool);
+	TLS_SET(contextPool, newPool);
+#else
+	MemoryPool* const old = TLS_GET(*contextPoolPtr);
+	TLS_SET(*contextPoolPtr, newPool);
+#endif
+	return old;
+}
+
+MemoryPool* MemoryPool::getContextPool()
+{
+#ifndef TLS_CLASS
+	return TLS_GET(contextPool);
+#else
+	return TLS_GET(*contextPoolPtr);
+#endif
+}
+
+void MemoryPool::init()
+{
+	static char msBuffer[sizeof(MemoryStats) + ALLOC_ALIGNMENT];
+	MemoryPool::default_stats_group =
+		new((void*)(IPTR) MEM_ALIGN((size_t)(IPTR) msBuffer)) MemoryStats;
+
+	processMemoryPool = MemoryPool::createPool();
+	fb_assert(processMemoryPool);
+}
+
+void MemoryPool::contextPoolInit()
+{
+#ifdef TLS_CLASS
+	contextPoolPtr = FB_NEW(*getDefaultMemoryPool()) TLS_CLASS<MemoryPool*>;
+#endif
+}
+
+void MemoryPool::cleanup()
+{
+	deletePool(processMemoryPool);
+	processMemoryPool = 0;
+	default_stats_group = 0;
+}
+
+void MemoryPool::setStatsGroup(MemoryStats& statsL)
+{
+	MutexLockGuard g(lock);
+	const size_t sav_used_memory = used_memory.value();
+	decrement_usage(sav_used_memory);
+	this->stats = &statsL;
+	increment_usage(sav_used_memory);
+}
+
+MemoryPool* MemoryPool::createPool(MemoryPool* parentPool, MemoryStats& stats)
+{
+	// Use malloc for the pool object itself
+	void* mem = malloc(sizeof(MemoryPool));
+	if (!mem)
+		BadAlloc::raise();
+	return new(mem) MemoryPool(parentPool, stats);
+}
+
+void MemoryPool::deletePool(MemoryPool* pool)
+{
+	if (!pool)
+		return;
+	pool->decrement_usage(pool->used_memory.value());
+	pool->lock.~Mutex();
+	free(pool);
+}
+
+void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
+#ifdef DEBUG_GDS_ALLOC
+	, const char* file, int line
+#endif
+) {
+	if (size == 0)
+		size = 1;
+
+	MemoryBlock* blk = (MemoryBlock*)malloc(sizeof(MemoryBlock) + size);
+	if (!blk)
+		return NULL;
+
+	blk->mbk_pool = this;
+	blk->mbk_size = size;
+#ifdef DEBUG_GDS_ALLOC
+	blk->mbk_file = file;
+	blk->mbk_line = line;
+#endif
+
+	increment_usage(size);
+	return (char*)blk + sizeof(MemoryBlock);
+}
+
+void* MemoryPool::allocate(size_t size
+#ifdef DEBUG_GDS_ALLOC
+	, const char* file, int line
+#endif
+) {
+	void* result = allocate_nothrow(size, 0
+#ifdef DEBUG_GDS_ALLOC
+		, file, line
+#endif
+	);
+	if (!result)
+		BadAlloc::raise();
+	return result;
+}
+
+void MemoryPool::deallocate(void* block)
+{
+	if (!block)
+		return;
+
+	MemoryBlock* blk = (MemoryBlock*)((char*)block - sizeof(MemoryBlock));
+	fb_assert(blk->mbk_pool == this);
+
+	decrement_usage(blk->mbk_size);
+	free(blk);
+}
+
+void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
+{
+	void* block = allocate(size ALLOC_PASS_ARGS);
+	memset(block, 0, size);
+	return block;
+}
+
+void* MemoryPool::allocateHugeBlock(size_t size)
+{
+	void* mem = malloc(size);
+	if (!mem)
+		BadAlloc::raise();
+	increment_usage(size);
+	return mem;
+}
+
+void MemoryPool::deallocateHugeBlock(void* block, size_t size)
+{
+	free(block);
+	decrement_usage(size);
+}
+
+bool MemoryPool::verify_pool(bool /*fast_checks_only*/)
+{
+	// With system malloc, pool is always valid
+	return true;
+}
+
+void MemoryPool::print_contents(FILE* file, bool /*used_only*/, const char* /*filter_path*/)
+{
+	fprintf(file, "MemoryPool %p (USE_SYSTEM_MALLOC mode) used=%" SIZEFORMAT "\n",
+		this, (size_t)used_memory.value());
+}
+
+void MemoryPool::print_contents(const char* filename, bool used_only, const char* filter_path)
+{
+	FILE* out = fopen(filename, "w");
+	if (out) {
+		print_contents(out, used_only, filter_path);
+		fclose(out);
+	}
+}
+
+#ifdef LIBC_CALLS_NEW
+void* MemoryPool::globalAlloc(size_t s) THROW_BAD_ALLOC
+{
+	if (!processMemoryPool)
+	{
+		static Firebird::InstanceControl dummy;
+		fb_assert(processMemoryPool);
+	}
+	return processMemoryPool->allocate(s
+#ifdef DEBUG_GDS_ALLOC
+			,__FILE__, __LINE__
+#endif
+	);
+}
+#endif
+
+MemoryPool& AutoStorage::getAutoMemoryPool()
+{
+#ifndef SUPERCLIENT
+	MemoryPool* p = MemoryPool::getContextPool();
+	if (!p)
+		p = getDefaultMemoryPool();
+#else
+	MemoryPool* p = getDefaultMemoryPool();
+#endif
+	fb_assert(p);
+	return *p;
+}
+
+#if defined(DEV_BUILD)
+void AutoStorage::ProbeStack() const
+{
+	(void)this;
+}
+#endif
+
+} // namespace Firebird
+
+void* operator new(size_t s) THROW_BAD_ALLOC
+{
+	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
+}
+void* operator new[](size_t s) THROW_BAD_ALLOC
+{
+	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
+}
+
+void operator delete(void* mem) throw()
+{
+	Firebird::MemoryPool::globalFree(mem);
+}
+void operator delete[](void* mem) throw()
+{
+	Firebird::MemoryPool::globalFree(mem);
+}
+
+#else // USE_SYSTEM_MALLOC
+//=============================================================================
+// Original Custom Memory Pool Implementation
+//=============================================================================
+
 namespace {
 #ifdef NEVERDEF		// Use it only when specific debugging is required
 	Firebird::SortedVector<size_t, 8192> pools;
@@ -2227,6 +2495,10 @@ void AutoStorage::ProbeStack() const
 
 } // namespace Firebird
 
+#endif // !USE_SYSTEM_MALLOC
+
+#ifndef USE_SYSTEM_MALLOC
+// Original operator new/delete (USE_SYSTEM_MALLOC has its own in the #ifdef block above)
 void* operator new(size_t s) THROW_BAD_ALLOC
 {
 	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
@@ -2244,3 +2516,4 @@ void operator delete[](void* mem) throw()
 {
 	Firebird::MemoryPool::globalFree(mem);
 }
+#endif // !USE_SYSTEM_MALLOC
