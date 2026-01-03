@@ -45,7 +45,7 @@ option(FIREBIRD_BUILD_FBEMBED "Build embedded library (libfbembed2)" ON)
 option(FIREBIRD_BUILD_ICU "Build bundled ICU libraries" ON)  # Always ON - bundled ICU 63.1
 
 # Debug options
-option(USE_SYSTEM_MALLOC "Use system malloc instead of custom memory pool (for ASAN/Valgrind debugging)" OFF)
+option(USE_SYSTEM_MALLOC "Use system malloc instead of custom memory pool (for ASAN/Valgrind debugging)" ON)
 
 # Version
 set(FIREBIRD_VERSION_MAJOR 2)
