@@ -299,6 +299,11 @@ add_library(fbclient2 SHARED ${FBCLIENT_SRC})
 # Client library uses SUPERCLIENT define (server functionality disabled)
 target_compile_definitions(fbclient2 PRIVATE SUPERCLIENT)
 
+# Optional: Use system malloc for debugging with ASAN/Valgrind
+if(USE_SYSTEM_MALLOC)
+    target_compile_definitions(fbclient2 PRIVATE USE_SYSTEM_MALLOC)
+endif()
+
 target_link_libraries(fbclient2
     PUBLIC ${LIB_dl}
     PUBLIC ${LIB_pthread}
@@ -647,6 +652,11 @@ add_library(fbembed2 SHARED ${FBEMBED_SRC})
 
 # Define EMBEDDED to disable features requiring security database
 target_compile_definitions(fbembed2 PRIVATE EMBEDDED)
+
+# Optional: Use system malloc for debugging with ASAN/Valgrind
+if(USE_SYSTEM_MALLOC)
+    target_compile_definitions(fbembed2 PRIVATE USE_SYSTEM_MALLOC)
+endif()
 
 # Link bundled ICU (static) for character set support
 target_link_libraries(fbembed2
