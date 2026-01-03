@@ -49,6 +49,10 @@
 					   stdlib.h (EKU) */
 #endif
 
+// USE_SYSTEM_MALLOC: When defined, bypass custom memory pool and use system
+// malloc/free directly. This enables ASAN/Valgrind to properly detect memory
+// errors. Define via -DUSE_SYSTEM_MALLOC in CXXFLAGS for debug builds.
+
 // MSVC does not support exception specification, so it's unknown if that will be correct or not
 // from its POV. For now, use it and disable the C4290 warning.
 //
@@ -106,6 +110,21 @@ const USHORT MBK_USED = 4; // Block is used
 const USHORT MBK_LAST = 8; // Block is last in the extent
 const USHORT MBK_DELAYED = 16; // Block is pending in the delayed free queue
 
+#ifdef USE_SYSTEM_MALLOC
+
+// Simplified block header for system malloc mode - just track pool and size
+struct MemoryBlock
+{
+	class MemoryPool* mbk_pool;
+	size_t mbk_size;
+#ifdef DEBUG_GDS_ALLOC
+	const char* mbk_file;
+	int mbk_line;
+#endif
+};
+
+#else // USE_SYSTEM_MALLOC
+
 struct FreeMemoryBlock
 {
 	FreeMemoryBlock* fbk_next_fragment;
@@ -143,6 +162,9 @@ struct MemoryBlock
 #endif
 };
 
+#endif // USE_SYSTEM_MALLOC
+
+#ifndef USE_SYSTEM_MALLOC
 
 // This structure is appended to the end of block redirected to parent pool or operating system
 // It is a doubly-linked list which we are going to use when our pool is going to be deleted
@@ -179,6 +201,8 @@ struct PendingFreeBlock
 {
 	PendingFreeBlock *next;
 };
+
+#endif // !USE_SYSTEM_MALLOC
 
 class MemoryStats
 {
@@ -219,6 +243,7 @@ private:
 
 
 // Memory pool based on B+ tree of free memory blocks
+// When USE_SYSTEM_MALLOC is defined, uses system malloc/free for ASAN/Valgrind compatibility
 
 // We are going to have two target architectures:
 // 1. Multi-process server with customizable lock manager
@@ -230,6 +255,22 @@ private:
 class MemoryPool
 {
 private:
+#ifdef USE_SYSTEM_MALLOC
+	// Simplified implementation using system malloc
+	Mutex lock;
+	AtomicCounter used_memory;
+	MemoryPool *parent;
+	MemoryStats *stats;
+
+	// Forbid copy constructor and assignment operator
+	MemoryPool(const MemoryPool&);
+	MemoryPool& operator=(const MemoryPool&);
+
+	inline void increment_usage(size_t size);
+	inline void decrement_usage(size_t size);
+
+#else // USE_SYSTEM_MALLOC
+
 	class InternalAllocator
 	{
 	public:
@@ -329,9 +370,15 @@ private:
 	inline void increment_mapping(size_t size);
 	inline void decrement_mapping(size_t size);
 
+#endif // !USE_SYSTEM_MALLOC
+
 protected:
 	// Do not allow to create and destroy pool directly from outside
+#ifdef USE_SYSTEM_MALLOC
+	MemoryPool(MemoryPool* _parent, MemoryStats &_stats);
+#else
 	MemoryPool(MemoryPool* _parent, MemoryStats &_stats, void* first_extent, void* root_page);
+#endif
 
 	// This should never be called
 	~MemoryPool() {}
@@ -425,7 +472,11 @@ public:
 #endif // LIBC_CALLS_NEW
 	    if (block)
 		{
+#ifdef USE_SYSTEM_MALLOC
+			((MemoryBlock*) ((char*) block - sizeof(MemoryBlock)))->mbk_pool->deallocate(block);
+#else
 			((MemoryBlock*) ((char*) block - MEM_ALIGN(sizeof(MemoryBlock))))->mbk_pool->deallocate(block);
+#endif
 		}
 	}
 
@@ -439,7 +490,9 @@ public:
 	// Initialize context pool
 	static void contextPoolInit();
 
+#ifndef USE_SYSTEM_MALLOC
 	friend class InternalAllocator;
+#endif
 };
 
 // Class intended to manage execution context pool stack
