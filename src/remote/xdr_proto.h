@@ -33,7 +33,6 @@
 bool_t	xdr_bool (XDR *, int *);
 bool_t	xdr_bytes (XDR *, SCHAR**, u_int *, u_int);
 bool_t	xdr_double (XDR *, double *);
-bool_t	xdr_enum (XDR *, xdr_op *);
 bool_t	xdr_float (XDR *, float *);
 bool_t	xdr_free (xdrproc_t proc, SCHAR *objp);
 bool_t	xdr_int (XDR *, int *);
@@ -45,9 +44,31 @@ bool_t	xdr_string (XDR *, SCHAR**, u_int);
 bool_t	xdr_u_int (XDR *, u_int *);
 bool_t	xdr_u_long (XDR *, ULONG *);
 bool_t	xdr_u_short (XDR *, u_short *);
-int		xdr_union (XDR *, xdr_op *, SCHAR *, struct xdr_discrim *, xdrproc_t);
+int		xdr_union (XDR *, int *, SCHAR *, struct xdr_discrim *, xdrproc_t);
 bool_t	xdr_wrapstring (XDR *, SCHAR **);
 bool_t	xdr_hyper(XDR *, void *);
 SLONG	getOperation(const void* data, size_t size);
+
+// Template xdr_enum for type-safe enum serialization.
+// Accepts any enum type, uses static_cast to avoid UB from reinterpret_cast.
+template<typename EnumT>
+inline bool_t xdr_enum(XDR* xdrs, EnumT* ip)
+{
+	SLONG temp;
+	switch (xdrs->x_op)
+	{
+	case XDR_ENCODE:
+		temp = static_cast<SLONG>(*ip);
+		return (*xdrs->x_ops->x_putlong)(xdrs, &temp);
+	case XDR_DECODE:
+		if (!(*xdrs->x_ops->x_getlong)(xdrs, &temp))
+			return FALSE;
+		*ip = static_cast<EnumT>(temp);
+		return TRUE;
+	case XDR_FREE:
+		return TRUE;
+	}
+	return FALSE;
+}
 
 #endif	// REMOTE_XDR_PROTO_H

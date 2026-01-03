@@ -316,38 +316,7 @@ bool_t xdr_double(XDR* xdrs, double* ip)
 }
 
 
-bool_t xdr_enum(XDR* xdrs, xdr_op* ip)
-{
-/**************************************
- *
- *	x d r _ e n u m
- *
- **************************************
- *
- * Functional description
- *	Map from external to internal representation (or vice versa).
- *
- **************************************/
-	SLONG temp;
-
-	switch (xdrs->x_op)
-	{
-	case XDR_ENCODE:
-		temp = (SLONG) *ip;
-		return PUTLONG(xdrs, &temp);
-
-	case XDR_DECODE:
-		if (!GETLONG(xdrs, &temp))
-			return FALSE;
-		*ip = (xdr_op) temp;
-		return TRUE;
-
-	case XDR_FREE:
-		return TRUE;
-	}
-
-	return FALSE;
-}
+// xdr_enum is now a template in xdr_proto.h
 
 
 bool_t xdr_float(XDR* xdrs, float* ip)
@@ -701,7 +670,7 @@ bool_t xdr_u_short(XDR* xdrs, u_short* ip)
 
 
 int xdr_union(	XDR*			xdrs,
-				xdr_op*			dscmp,
+				int*			dscmp,
 				SCHAR*			unp,
 				xdr_discrim*	choices,
 				xdrproc_t		dfault)
@@ -717,13 +686,7 @@ int xdr_union(	XDR*			xdrs,
  *
  **************************************/
 
-	// TMN: Added temporary int to hold the enum_t, since an enum
-	// can have any size.
-	int enum_value = *dscmp;
-	const bool_t bOK = xdr_int(xdrs, &enum_value);
-	*dscmp = static_cast<xdr_op>(enum_value);
-
-	if (!bOK)
+	if (!xdr_int(xdrs, dscmp))
 	{
 		return FALSE;
 	}

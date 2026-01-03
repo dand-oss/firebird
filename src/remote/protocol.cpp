@@ -268,7 +268,7 @@ bool_t xdr_protocol(XDR* xdrs, PACKET* p)
 
 	DEBUG_XDR_PACKET(xdrs, p);
 
-	if (!xdr_enum(xdrs, reinterpret_cast<xdr_op*>(&p->p_operation)))
+	if (!xdr_enum(xdrs, &p->p_operation))
 		return P_FALSE(xdrs, p);
 
 	switch (p->p_operation)
@@ -281,9 +281,9 @@ bool_t xdr_protocol(XDR* xdrs, PACKET* p)
 	case op_connect:
 		{
 			P_CNCT* connect = &p->p_cnct;
-			MAP(xdr_enum, reinterpret_cast<xdr_op&>(connect->p_cnct_operation));
+			MAP(xdr_enum, connect->p_cnct_operation);
 			MAP(xdr_short, reinterpret_cast<SSHORT&>(connect->p_cnct_cversion));
-			MAP(xdr_enum, reinterpret_cast<xdr_op&>(connect->p_cnct_client));
+			MAP(xdr_enum, connect->p_cnct_client);
 			MAP(xdr_cstring_const, connect->p_cnct_file);
 			MAP(xdr_short, reinterpret_cast<SSHORT&>(connect->p_cnct_count));
 
@@ -301,7 +301,7 @@ bool_t xdr_protocol(XDR* xdrs, PACKET* p)
 				}
 
 				MAP(xdr_short, reinterpret_cast<SSHORT&>(tail->p_cnct_version));
-				MAP(xdr_enum, reinterpret_cast<xdr_op&>(tail->p_cnct_architecture));
+				MAP(xdr_enum, tail->p_cnct_architecture);
 				MAP(xdr_u_short, tail->p_cnct_min_type);
 				MAP(xdr_u_short, tail->p_cnct_max_type);
 				MAP(xdr_short, reinterpret_cast<SSHORT&>(tail->p_cnct_weight));
@@ -320,7 +320,7 @@ bool_t xdr_protocol(XDR* xdrs, PACKET* p)
 	case op_accept:
 		accept = &p->p_acpt;
 		MAP(xdr_short, reinterpret_cast<SSHORT&>(accept->p_acpt_version));
-		MAP(xdr_enum, reinterpret_cast<xdr_op&>(accept->p_acpt_architecture));
+		MAP(xdr_enum, accept->p_acpt_architecture);
 		MAP(xdr_u_short, accept->p_acpt_type);
 		DEBUG_PRINTSIZE(xdrs, p->p_operation);
 		return P_TRUE(xdrs, p);

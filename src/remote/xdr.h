@@ -92,7 +92,7 @@ typedef bool_t          (*xdrproc_t)(xdr_t*, SCHAR*);
 
 struct xdr_discrim
 {
-	xdr_op		value;
+	int			value;  // Use int for compatibility with template xdr_enum
 	xdrproc_t	proc;
 };
 
