@@ -100,6 +100,9 @@ endif()
 # ASI build options
 ########################################
 
+# Debug option - use system malloc for ASAN/Valgrind compatibility
+option(USE_SYSTEM_MALLOC "Use system malloc instead of custom memory pool" ON)
+
 # Build mode: CLIENT (default), EMBEDDED, or SERVER
 # - CLIENT: Client library only (for connecting to remote server)
 # - EMBEDDED: Client library + Engine13 plugin + dependencies (for embedded database use)
