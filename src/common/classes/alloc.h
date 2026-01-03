@@ -203,6 +203,7 @@ public:
 	}
 
 	void* allocate(size_t size ALLOC_PARAMS);
+	void* allocate_array(size_t size ALLOC_PARAMS);
 
 	static void globalFree(void* mem) noexcept;
 	void deallocate(void* mem) noexcept;
@@ -365,7 +366,7 @@ inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS)
 
 inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS)
 {
-	return pool.allocate(s ALLOC_PASS_ARGS);
+	return pool.allocate_array(s ALLOC_PASS_ARGS);
 }
 
 inline void operator delete(void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) noexcept

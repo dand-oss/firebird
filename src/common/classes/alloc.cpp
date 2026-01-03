@@ -73,6 +73,315 @@
 //#define VALGRIND_FIX_IT		// overrides suspicious valgrind behavior
 #endif	// USE_VALGRIND
 
+#ifdef USE_SYSTEM_MALLOC
+//=============================================================================
+// USE_SYSTEM_MALLOC Implementation
+// Pure pass-through to operator new/delete for ASAN/Valgrind compatibility
+// No headers or wrappers - ASan must see the exact pointer from new in delete
+//=============================================================================
+
+#include "../common/classes/fb_tls.h"
+#include "../common/classes/locks.h"
+
+namespace Firebird {
+
+#ifndef TLS_CLASS
+TLS_DECLARE(MemoryPool*, contextPool);
+#else
+TLS_DECLARE(MemoryPool*, *contextPoolPtr);
+#endif
+
+// Minimal MemPool - just tracks stats, no header wrapping
+class MemPool
+{
+public:
+	static MemPool* defaultMemPool;
+
+	MemPool(MemoryStats& stats, void* /*extentsCache*/)
+		: m_stats(&stats), m_parent(nullptr), m_used(0)
+	{}
+
+	MemPool(MemPool& parent, MemoryStats& stats, void* /*extentsCache*/)
+		: m_stats(&stats), m_parent(&parent), m_used(0)
+	{}
+
+	~MemPool() {}
+
+	// Pure pass-through allocation - return exactly what operator new returns
+	void* allocate(size_t size ALLOC_PARAMS)
+	{
+		if (size == 0)
+			size = 1;
+
+		void* ptr = ::operator new(size);
+		m_stats->increment_usage(size);
+		m_used += size;
+		return ptr;
+	}
+
+	// Array allocation - must use operator new[] for proper pairing with delete[]
+	void* allocate_array(size_t size ALLOC_PARAMS)
+	{
+		if (size == 0)
+			size = 1;
+
+		void* ptr = ::operator new[](size);
+		m_stats->increment_usage(size);
+		m_used += size;
+		return ptr;
+	}
+
+	// No-op deallocate - we can't track individual allocations without headers
+	// The actual delete happens via operator delete called by the compiler
+	static void deallocate(void* /*block*/) noexcept
+	{
+		// Cannot free here - the compiler will call operator delete directly
+		// This is only called for pool-based cleanup which we skip in this mode
+	}
+
+	static void globalFree(void* /*block*/) noexcept
+	{
+		// Same as deallocate - cannot free here
+	}
+
+	static void deletePool(MemPool* pool)
+	{
+		if (pool)
+		{
+			pool->~MemPool();
+			::operator delete(pool);
+		}
+	}
+
+	static MemPool* getPoolFromPointer(void* /*ptr*/) noexcept
+	{
+		// Cannot determine pool without headers
+		return defaultMemPool;
+	}
+
+	MemoryStats& getStatsGroup() noexcept { return *m_stats; }
+	void setStatsGroup(MemoryStats& newStats) noexcept
+	{
+		MutexLockGuard g(m_mutex, "MemPool::setStatsGroup");
+		m_stats = &newStats;
+	}
+
+	void print_contents(FILE* file, unsigned /*flags*/, const char* /*filter_path*/) noexcept
+	{
+		fprintf(file, "MemPool %p (USE_SYSTEM_MALLOC) used=%zu\n", (void*)this, (size_t)m_used.value());
+	}
+
+	void print_contents(const char* filename, unsigned flags, const char* filter_path) noexcept
+	{
+		FILE* out = fopen(filename, "w");
+		if (out)
+		{
+			print_contents(out, flags, filter_path);
+			fclose(out);
+		}
+	}
+
+	static void cleanupExternalPool() {}
+
+	Mutex m_mutex;
+
+private:
+	MemoryStats* m_stats;
+	MemPool* m_parent;
+	AtomicCounter m_used;
+};
+
+MemPool* MemPool::defaultMemPool = nullptr;
+
+// MemoryPool implementation using simplified MemPool
+MemoryStats* MemoryPool::default_stats_group = nullptr;
+MemoryPool* MemoryPool::defaultMemoryManager = nullptr;
+MemoryPool* MemoryPool::externalMemoryManager = nullptr;
+
+MemoryPool* MemoryPool::createPool(MemoryPool* parentPool, MemoryStats& stats)
+{
+	// Use ::operator new so ASan can track allocations properly
+	void* mem = ::operator new(sizeof(MemPool) + sizeof(MemoryPool));
+
+	MemPool* mp = new(mem) MemPool(stats, nullptr);
+	MemoryPool* pool = new((char*)mem + sizeof(MemPool)) MemoryPool(mp);
+	return pool;
+}
+
+void MemoryPool::deletePool(MemoryPool* pool)
+{
+	if (!pool)
+		return;
+
+	// Run finalizers
+	while (pool->finalizers)
+	{
+		auto finalizer = pool->finalizers;
+		pool->finalizers = finalizer->next;
+		if (pool->finalizers)
+			pool->finalizers->prev = nullptr;
+		finalizer->finalize();
+	}
+
+	MemPool* mp = pool->pool;
+	pool->~MemoryPool();
+	MemPool::deletePool(mp);
+}
+
+void* MemoryPool::allocate(size_t size ALLOC_PARAMS)
+{
+	return pool->allocate(size ALLOC_PASS_ARGS);
+}
+
+void* MemoryPool::allocate_array(size_t size ALLOC_PARAMS)
+{
+	return pool->allocate_array(size ALLOC_PASS_ARGS);
+}
+
+void MemoryPool::deallocate(void* block) noexcept
+{
+	MemPool::deallocate(block);
+}
+
+void MemoryPool::globalFree(void* block) noexcept
+{
+	MemPool::globalFree(block);
+}
+
+void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
+{
+	void* block = allocate(size ALLOC_PASS_ARGS);
+	memset(block, 0, size);
+	return block;
+}
+
+MemoryStats& MemoryPool::getStatsGroup() noexcept
+{
+	return pool->getStatsGroup();
+}
+
+void MemoryPool::setStatsGroup(MemoryStats& stats) noexcept
+{
+	pool->setStatsGroup(stats);
+}
+
+MemoryPool* MemoryPool::setContextPool(MemoryPool* newPool)
+{
+#ifndef TLS_CLASS
+	MemoryPool* const old = TLS_GET(contextPool);
+	TLS_SET(contextPool, newPool);
+#else
+	MemoryPool* const old = TLS_GET(*contextPoolPtr);
+	TLS_SET(*contextPoolPtr, newPool);
+#endif
+	return old;
+}
+
+MemoryPool* MemoryPool::getContextPool()
+{
+#ifndef TLS_CLASS
+	return TLS_GET(contextPool);
+#else
+	return TLS_GET(*contextPoolPtr);
+#endif
+}
+
+void MemoryPool::initDefaultPool()
+{
+	static char statsBuffer[sizeof(MemoryStats) + ALLOC_ALIGNMENT];
+	default_stats_group = new((void*)(IPTR)MEM_ALIGN((size_t)(IPTR)statsBuffer)) MemoryStats;
+	defaultMemoryManager = createPool(nullptr, *default_stats_group);
+	MemPool::defaultMemPool = defaultMemoryManager->pool;
+}
+
+void MemoryPool::cleanupDefaultPool()
+{
+	deletePool(defaultMemoryManager);
+	defaultMemoryManager = nullptr;
+	MemPool::defaultMemPool = nullptr;
+	default_stats_group = nullptr;
+}
+
+void MemoryPool::contextPoolInit()
+{
+#ifdef TLS_CLASS
+	contextPoolPtr = FB_NEW(*getDefaultMemoryPool()) TLS_CLASS<MemoryPool*>;
+#endif
+}
+
+void MemoryPool::print_contents(FILE* file, unsigned flags, const char* filter_path) noexcept
+{
+	pool->print_contents(file, flags, filter_path);
+}
+
+void MemoryPool::print_contents(const char* filename, unsigned flags, const char* filter_path) noexcept
+{
+	pool->print_contents(filename, flags, filter_path);
+}
+
+void MemoryPool::internalRegisterFinalizer(Finalizer* finalizer)
+{
+	MutexLockGuard guard(pool->m_mutex, "MemoryPool::internalRegisterFinalizer");
+
+	finalizer->next = finalizers;
+	if (finalizers)
+		finalizers->prev = finalizer;
+	finalizers = finalizer;
+}
+
+void MemoryPool::unregisterFinalizer(Finalizer*& finalizer)
+{
+	if (!finalizer)
+		return;
+
+	MutexLockGuard guard(pool->m_mutex, "MemoryPool::unregisterFinalizer");
+
+	if (finalizer->prev)
+		finalizer->prev->next = finalizer->next;
+	else
+		finalizers = finalizer->next;
+
+	if (finalizer->next)
+		finalizer->next->prev = finalizer->prev;
+
+	MemPool::deallocate(finalizer);
+	finalizer = nullptr;
+}
+
+MemoryPool& AutoStorage::getAutoMemoryPool()
+{
+	MemoryPool* p = MemoryPool::getContextPool();
+	if (!p)
+		p = getDefaultMemoryPool();
+	fb_assert(p);
+	return *p;
+}
+
+#if defined(DEV_BUILD)
+void AutoStorage::ProbeStack() const
+{
+	(void)this;  // No-op for USE_SYSTEM_MALLOC
+}
+#endif
+
+} // namespace Firebird
+
+// External memory handler stub for USE_SYSTEM_MALLOC
+void initExternalMemoryPool()
+{
+	using namespace Firebird;
+	if (!MemoryPool::externalMemoryManager)
+		MemoryPool::externalMemoryManager = MemoryPool::createPool();
+}
+
+// Note: No global operator new/delete overrides needed with USE_SYSTEM_MALLOC
+// ASan intercepts at runtime level, and all pool allocations use ::operator new
+
+#else // USE_SYSTEM_MALLOC
+//=============================================================================
+// Original Custom Memory Pool Implementation
+//=============================================================================
+
 namespace {
 
 ///#define MEM_DEBUG_EXTERNAL
@@ -1818,6 +2127,7 @@ private:
 
 public:
 	void* allocate(size_t size ALLOC_PARAMS);
+	void* allocate_array(size_t size ALLOC_PARAMS);
 	MemBlock* allocateRange(size_t from, size_t& size ALLOC_PARAMS);
 
 private:
@@ -2371,6 +2681,12 @@ void* MemPool::allocate(size_t size ALLOC_PARAMS)
 	return &memory->body;
 }
 
+// Array allocation - same as allocate() for full pool since pool manages its own memory
+void* MemPool::allocate_array(size_t size ALLOC_PARAMS)
+{
+	return allocate(size ALLOC_PASS_ARGS);
+}
+
 
 void MemPool::releaseMemory(void* object, bool flagExtent) noexcept
 {
@@ -2845,6 +3161,11 @@ void* MemoryPool::allocate(size_t size ALLOC_PARAMS)
 	return pool->allocate(size ALLOC_PASS_ARGS);
 }
 
+void* MemoryPool::allocate_array(size_t size ALLOC_PARAMS)
+{
+	return pool->allocate_array(size ALLOC_PASS_ARGS);
+}
+
 void MemoryPool::deallocate(void* block) noexcept
 {
 	pool->deallocate(block);
@@ -3126,3 +3447,5 @@ void operator delete[](void* mem) noexcept
 {
 	MemoryPool::globalFree(mem);
 }
+
+#endif // USE_SYSTEM_MALLOC
