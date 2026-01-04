@@ -194,6 +194,11 @@ install(FILES ${AUTOCONFIG}
     DESTINATION include/firebird/gen
 )
 
+# Install runtime configuration files
+install(FILES ${CMAKE_SOURCE_DIR}/gen/install/misc/firebird.conf
+    DESTINATION share
+)
+
 ################################################################################
 # SUMMARY
 ################################################################################
