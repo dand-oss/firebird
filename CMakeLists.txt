@@ -74,7 +74,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${output_dir}/lib)
 include(Configure)
 
 # Firebird configuration variables
-set(FB_PREFIX "${CMAKE_INSTALL_PREFIX}/${PROJECT_NAME}")
+# NOTE: CMAKE_INSTALL_PREFIX already includes project name when install_pkg_as_subdir=True
+set(FB_PREFIX "${CMAKE_INSTALL_PREFIX}")
 set(FB_IPC_NAME "FirebirdIPI")
 set(FB_LOGFILENAME "firebird.log")
 set(FB_SERVICE_NAME "gds_db")
