@@ -486,6 +486,11 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/include/firebird/
     FILES_MATCHING PATTERN "*.h"
 )
 
+# Install runtime configuration (always, even in CLIENT mode)
+install(FILES ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
+    DESTINATION share
+)
+
 # Install export targets file
 install(EXPORT Firebird5Targets
     FILE Firebird5Targets.cmake
