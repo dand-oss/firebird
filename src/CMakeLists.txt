@@ -701,6 +701,23 @@ if (WIN32)
     install(FILES ${ICU_DLLS} DESTINATION bin)
 endif()
 
+# Create symlinks so Firebird finds plugins at ${FIREBIRD}/plugins/
+# (plugins are installed to lib/firebird/plugins/ but FIREBIRD points to install prefix)
+if (UNIX)
+    install(CODE "
+        execute_process(
+            COMMAND \${CMAKE_COMMAND} -E create_symlink
+                lib/firebird/plugins
+                \${CMAKE_INSTALL_PREFIX}/plugins
+        )
+        execute_process(
+            COMMAND \${CMAKE_COMMAND} -E create_symlink
+                lib/firebird/intl
+                \${CMAKE_INSTALL_PREFIX}/intl
+        )
+    ")
+endif()
+
 endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - engine and plugins
 
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
