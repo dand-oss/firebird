@@ -724,3 +724,18 @@ install(TARGETS ib_udf fbudf
     LIBRARY DESTINATION UDF
     RUNTIME DESTINATION UDF
 )
+
+################################################################################
+# INSTALL: Runtime support files (msg, conf)
+################################################################################
+
+# Install firebird.msg (error messages) - required for readable error messages
+# Install to prefix root where libfbembed2 expects it (not in share/)
+install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    DESTINATION .
+)
+
+# Install firebird.conf to share/ directory
+install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.conf
+    DESTINATION share
+)
