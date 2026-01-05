@@ -59,8 +59,6 @@ set(epp_boot_gds_files
 )
 set(epp_master_files
     auth/SecurityDatabase/LegacyManagement.epp
-    msgs/build_file.epp
-    misc/codes.epp
 )
 
 if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
@@ -83,26 +81,16 @@ epp_process(master  epp_master_files        ${BOOT_GPRE_CMD} -n -m)
 #
 ################################################################################
 
-if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 ########################################
 # BUILD STEP databases
 ########################################
 
 set(msgs_src
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/facilities2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/history2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/locales.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/messages2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/msg.sql
     ${CMAKE_CURRENT_SOURCE_DIR}/msgs/sqlstates.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/symbols2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/system_errors2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/transmsgs.de_DE2.sql
-    ${CMAKE_CURRENT_SOURCE_DIR}/msgs/transmsgs.fr_FR2.sql
 )
 set(databases_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
-    ${msgs_src}
 )
 add_custom_command(
     OUTPUT security.fdb
@@ -149,8 +137,10 @@ project_group(databases "Boot/Custom build steps")
 
 
 ########################################
-# BUILD STEP messages
+# BUILD STEP messages (SERVER mode only - needs build_msg and codes)
 ########################################
+
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 
 add_custom_command(
     OUTPUT firebird.msg
@@ -196,45 +186,17 @@ endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - messages
 
 ########################################
 # BUILD STEP msg_fdb
+# Restore msg.fdb from pre-built backup (SQL source files not in repo)
 ########################################
-
-set(isql_exec_msg ${BOOT_ISQL_CMD} -q msg_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/msgs)
 
 add_custom_command(
     OUTPUT msg.fdb
     VERBATIM
     DEPENDS
-        boot_isql
-        boot_gfix
-        ${msgs_src}
-    #
-    COMMAND ${CMAKE_COMMAND} -E remove msg.fdb
-    COMMAND ${CMAKE_COMMAND} -E remove msg_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'msg_.fdb';" > create_db_msg.sql
-    COMMAND ${BOOT_ISQL_CMD} -q -i create_db_msg.sql
-    COMMAND ${BOOT_GFIX_CMD} -write async msg_.fdb
-    COMMAND ${isql_exec_msg}/msg.sql
-    #
-    COMMAND echo loading facilities
-    COMMAND ${isql_exec_msg}/facilities2.sql
-    COMMAND echo loading sql states
-    COMMAND ${isql_exec_msg}/sqlstates.sql
-    COMMAND echo loading locales
-    COMMAND ${isql_exec_msg}/locales.sql
-    COMMAND echo loading history
-    COMMAND ${isql_exec_msg}/history2.sql
-    COMMAND echo loading messages
-    COMMAND ${isql_exec_msg}/messages2.sql
-    COMMAND echo loading symbols
-    COMMAND ${isql_exec_msg}/symbols2.sql
-    COMMAND echo loading system errors
-    COMMAND ${isql_exec_msg}/system_errors2.sql
-    COMMAND echo loading French translation
-    COMMAND ${isql_exec_msg}/transmsgs.fr_FR2.sql
-    COMMAND echo loading German translation
-    COMMAND ${isql_exec_msg}/transmsgs.de_DE2.sql
-    #
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different msg_.fdb msg.fdb
+        boot_gbak
+        ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak
+    COMMAND ${CMAKE_COMMAND} -E remove -f msg.fdb
+    COMMAND ${BOOT_GBAK_CMD} -c -REP ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak msg.fdb
 )
 add_custom_target(msg_fdb
     DEPENDS
@@ -243,7 +205,7 @@ add_custom_target(msg_fdb
 )
 project_group(msg_fdb "Boot/Custom build steps")
 
-endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - databases, messages
+endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - databases, messages
 
 ########################################
 # BUILD_STEP parse
@@ -392,6 +354,9 @@ if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 endif()
 if (UNIX)
 target_link_libraries       (common dl)
+# RE2 library for SimilarToRegex
+find_library(LIB_re2 re2 REQUIRED)
+target_link_libraries       (common ${LIB_re2})
 endif()
 
 # Use system malloc for ASAN/Valgrind compatibility
@@ -593,8 +558,13 @@ add_dependencies_cc         (engine_common parse UpdateCloopInterfaces)
 
 if (NOT CMAKE_CROSSCOMPILING)
 
+# Find libcds for concurrent data structures
+if (UNIX)
+    find_library(LIB_cds cds REQUIRED)
+endif()
+
 add_library                 (boot_engine SHARED ${engine_generated_src_boot} ${VERSION_RC})
-target_link_libraries       (boot_engine engine_common boot_alice boot_burp common boot_yvalve)
+target_link_libraries       (boot_engine engine_common boot_alice boot_burp common boot_yvalve ${LIB_cds} libtomcrypt libtommath)
 set_output_directory        (boot_engine plugins CURRENT_DIR)
 set_exported_symbols        (boot_engine fbplugin)
 copy_and_rename_lib         (boot_engine Engine13)
@@ -608,7 +578,7 @@ endif() # if (NOT CMAKE_CROSSCOMPILING)
 ########################################
 
 add_library                 (engine SHARED ${engine_generated_src_master} ${VERSION_RC})
-target_link_libraries       (engine engine_common alice burp common yvalve)
+target_link_libraries       (engine engine_common alice burp common yvalve ${LIB_cds} libtomcrypt libtommath)
 set_target_properties       (engine PROPERTIES OUTPUT_NAME Engine13)
 set_output_directory        (engine plugins)
 set_exported_symbols        (engine fbplugin)
@@ -788,8 +758,10 @@ target_link_libraries       (gpre gpre_common common yvalve)
 
 
 ########################################
-# EXECUTABLE build_msg
+# EXECUTABLE build_msg (SERVER mode only - needs msgs/build_file.epp which doesn't exist in source)
 ########################################
+
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 
 set(build_msg_generated_src
     msgs/build_file.epp
@@ -805,10 +777,14 @@ project_group               (build_msg Boot)
 
 endif() # if (NOT CMAKE_CROSSCOMPILING)
 
+endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - build_msg
+
 
 ########################################
-# EXECUTABLE codes
+# EXECUTABLE codes (SERVER mode only - needs misc/codes.epp which doesn't exist in source)
 ########################################
+
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
 
 set(codes_generated_src
     misc/codes.epp
@@ -823,6 +799,8 @@ set_output_directory        (codes . CURRENT_DIR)
 project_group               (codes Boot)
 
 endif() # if (NOT CMAKE_CROSSCOMPILING)
+
+endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - codes
 
 
 ########################################
