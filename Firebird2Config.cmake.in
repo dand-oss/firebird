@@ -2,8 +2,13 @@
 
 include(CMakeFindDependencyMacro)
 
-# Include our exported targets
+# Include client library targets
 include("${CMAKE_CURRENT_LIST_DIR}/Firebird2Targets.cmake")
+
+# Include embedded library targets if available
+if(EXISTS "${CMAKE_CURRENT_LIST_DIR}/Firebird2EmbedTargets.cmake")
+    include("${CMAKE_CURRENT_LIST_DIR}/Firebird2EmbedTargets.cmake")
+endif()
 
 # Check for required components
 check_required_components(Firebird2)

@@ -676,6 +676,12 @@ set_target_properties(fbembed2 PROPERTIES
     SOVERSION ${FIREBIRD_VERSION_MAJOR}
 )
 
+# Add interface include directories for downstream consumers (same API as fbclient)
+target_include_directories(fbembed2 PUBLIC
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
+    $<INSTALL_INTERFACE:include/firebird>
+)
+
 set_output_directory_unix(fbembed2 lib)
 # Windows: .def for exports, Linux: .vers for symbol versioning (different mechanisms)
 if(WIN32)
@@ -685,11 +691,19 @@ else()
 endif()
 project_group(fbembed2 "Libraries")
 
-# Install embedded library
+# Install embedded library with export for CMake find_package support
 install(TARGETS fbembed2
+    EXPORT Firebird2EmbedTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
+)
+
+# Export embedded targets separately (different library, same API)
+install(EXPORT Firebird2EmbedTargets
+    FILE Firebird2EmbedTargets.cmake
+    NAMESPACE Firebird2::
+    DESTINATION lib/cmake/Firebird2
 )
 
 endif() # FIREBIRD_BUILD_FBEMBED
