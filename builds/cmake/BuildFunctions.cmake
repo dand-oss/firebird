@@ -9,7 +9,8 @@
 ########################################
 function(set_output_directory target dir)
     set(out ${output_dir})
-    if (MSVC OR XCODE) # multiconfiguration builds
+    get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
+    if (is_multi_config) # multiconfiguration builds (MSVC, Xcode, Ninja Multi-Config)
         set(out ${CMAKE_RUNTIME_OUTPUT_DIRECTORY})
     endif()
     if ("${ARGV2}" STREQUAL "CURRENT_DIR")
@@ -18,7 +19,7 @@ function(set_output_directory target dir)
             set(dir bin)
         endif()
     endif()
-    if (MSVC OR XCODE)
+    if (is_multi_config)
         foreach(conf ${CMAKE_CONFIGURATION_TYPES})
             string(TOUPPER ${conf} conf2)
             set_target_properties(${target} PROPERTIES LIBRARY_OUTPUT_DIRECTORY_${conf2} ${out}/${conf}/${dir})
@@ -263,17 +264,23 @@ function(create_command command type out)
         set(dir ${boot_dir})
     endif()
 
-    set_win32(env "PATH=${dir}\;%PATH%")
-    set_unix (env "PATH=${dir}/bin:$PATH")
-    set(env "${env}"
-        FIREBIRD=${dir}
-    )
-
     set(cmd_name ${command})
     get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
     if (is_multi_config)
         set(conf _$<CONFIG>)
+        # For multi-config, boot_dir/output_dir already include $<CONFIG> suffix
+        # So paths are: ${dir}/bin, ${dir}/lib, ${dir}/plugins
+    else()
+        set(conf)
     endif()
+
+    # FIREBIRD points to dir which has standard layout: bin/, lib/, plugins/
+    set_win32(env "PATH=${dir}/bin\;%PATH%")
+    set_unix (env "PATH=${dir}/bin:$PATH")
+    set_unix (env "${env}" "LD_LIBRARY_PATH=${dir}/lib:${dir}/bin:$LD_LIBRARY_PATH")
+    set(env "${env}"
+        FIREBIRD=${dir}
+    )
 
     set(pre_cmd)
     set(ext .sh)
@@ -316,10 +323,12 @@ function(create_boot_commands)
         boot_gpre
         boot_gbak
         boot_gfix
-        build_msg
-        codes
         gpre_boot
     )
+    # build_msg and codes only exist in SERVER mode
+    if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
+        list(APPEND cmd_list build_msg codes)
+    endif()
     foreach(cmd ${cmd_list})
         create_command(${cmd} boot out)
         set(${out} ${${out}} PARENT_SCOPE)
