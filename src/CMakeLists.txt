@@ -177,6 +177,22 @@ add_custom_command(
 add_custom_target(messages ALL DEPENDS firebird.msg codes_headers.dummy)
 project_group(messages "Boot/Custom build steps")
 
+else() # EMBEDDED or CLIENT mode - use pre-built firebird.msg
+
+# For non-SERVER builds, copy pre-built firebird.msg to output directory
+# This is needed for isql to display proper error messages when building empbuild.fdb
+add_custom_command(
+    OUTPUT ${output_dir}/firebird.msg
+    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        ${output_dir}/firebird.msg
+    COMMENT "Copying pre-built firebird.msg to output directory"
+)
+add_custom_target(messages ALL DEPENDS ${output_dir}/firebird.msg)
+project_group(messages "Boot/Custom build steps")
+
+endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - messages
 
 ########################################
 # BUILD STEP msg_fdb
@@ -489,6 +505,12 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/include/firebird/
 # Install runtime configuration (always, even in CLIENT mode)
 install(FILES ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
     DESTINATION share
+)
+
+# Install firebird.msg (error messages) - required for readable error messages
+# Install to prefix root where the library expects it
+install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    DESTINATION .
 )
 
 # Install export targets file

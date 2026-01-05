@@ -16,6 +16,8 @@ add_custom_command(
     OUTPUT empbuild.fdb
     DEPENDS
         isql
+        engine
+        ${output_dir}/firebird.msg
         ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
     COMMAND ${CMAKE_COMMAND} -E remove empbuild.fdb
     COMMAND ${ISQL_CMD} -q -i ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
@@ -36,7 +38,7 @@ add_custom_command(
 add_executable          (empbuild empbuild.cpp empbuild.fdb ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbuild.epp)
 target_link_libraries   (empbuild yvalve)
 set_output_directory    (empbuild . CURRENT_DIR)
-add_dependencies_cc     (empbuild engine)
+add_dependencies_cc     (empbuild engine messages)
 project_group           (empbuild Examples)
 
 file(GLOB files
