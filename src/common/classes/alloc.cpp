@@ -1818,6 +1818,7 @@ private:
 
 public:
 	void* allocate(size_t size ALLOC_PARAMS);
+	void* allocate_array(size_t size ALLOC_PARAMS);
 	MemBlock* allocateRange(size_t from, size_t& size ALLOC_PARAMS);
 
 private:
@@ -2371,6 +2372,12 @@ void* MemPool::allocate(size_t size ALLOC_PARAMS)
 	return &memory->body;
 }
 
+// Array allocation - same as allocate() for full pool since pool manages its own memory
+void* MemPool::allocate_array(size_t size ALLOC_PARAMS)
+{
+	return allocate(size ALLOC_PASS_ARGS);
+}
+
 
 void MemPool::releaseMemory(void* object, bool flagExtent) noexcept
 {
@@ -2843,6 +2850,11 @@ MemoryPool& AutoStorage::getAutoMemoryPool()
 void* MemoryPool::allocate(size_t size ALLOC_PARAMS)
 {
 	return pool->allocate(size ALLOC_PASS_ARGS);
+}
+
+void* MemoryPool::allocate_array(size_t size ALLOC_PARAMS)
+{
+	return pool->allocate_array(size ALLOC_PASS_ARGS);
 }
 
 void MemoryPool::deallocate(void* block) noexcept
