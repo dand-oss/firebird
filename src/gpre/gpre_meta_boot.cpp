@@ -809,7 +809,7 @@ void ERR_post(ISC_STATUS, ...)
 {
 }
 
-int ISC_EXPORT fb_shutdown(unsigned int timeout, const int reason)
+int ISC_EXPORT fb2_shutdown(unsigned int timeout, const int reason)
 {
 	return 1;
 }

@@ -297,7 +297,7 @@
 +e BLOB_text_load
 +e Bopen
 # Server shutdown support
-+e fb_shutdown
++e fb2_shutdown
 +e fb_shutdown_callback
 # Other misc functions
 +e isc_ftof

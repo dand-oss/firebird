@@ -124,7 +124,7 @@ EXPORTS
     gds_alloc_flag_unfreed
     gds_alloc_report
 
-	fb_shutdown
+	fb2_shutdown
 	fb_shutdown_callback
 	fb_cancel_operation
 	fb_disconnect_transaction

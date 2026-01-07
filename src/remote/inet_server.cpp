@@ -445,7 +445,7 @@ int FB_EXPORTED server_main( int argc, char** argv)
 
 	// perform atexit shutdown here when all globals in embedded library are active
 	// also sync with possibly already running shutdown in dedicated thread
-	fb_shutdown(10000, fb_shutrsn_exit_called);
+	fb2_shutdown(10000, fb_shutrsn_exit_called);
 
 	return FINI_OK;
 }

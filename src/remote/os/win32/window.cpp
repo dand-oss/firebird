@@ -228,7 +228,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				{
 					SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
 				}
-				fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_app_stopped);
+				fb2_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_app_stopped);
 				//DestroyWindow(hWnd);
 			}
 		}
@@ -434,7 +434,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 						return FALSE;
 					}
 
-					fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_device_removed);
+					fb2_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_device_removed);
 					//DestroyWindow(hWnd);
 					return TRUE;
 				}
@@ -458,7 +458,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				GetDriveLetter(pdbcv->dbcv_unitmask, szDrives);
 				MessageBox(hWnd, tmp, szDrives, MB_OK | MB_ICONHAND);
 				PostMessage(hWnd, WM_DESTROY, 0, 0);
-				fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_device_removed);
+				fb2_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_device_removed);
 			}
 			return TRUE;
 

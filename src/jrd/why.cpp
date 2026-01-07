@@ -915,7 +915,7 @@ namespace
 
 	void atExitShutdown()
 	{
-		fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
+		fb2_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
 	}
 
 #ifdef UNIX
@@ -949,7 +949,7 @@ namespace
 			}
 
 			// perform shutdown
-			if (fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
+			if (fb2_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
 			{
 				InstanceControl::registerShutdown(0);
 				exit(0);
@@ -5944,11 +5944,11 @@ FB_API_HANDLE WHY_get_public_attachment_handle(const void* handle)
 
 static GlobalPtr<Mutex> singleShutdown;
 
-int API_ROUTINE fb_shutdown(unsigned int timeout, const int reason)
+int API_ROUTINE fb2_shutdown(unsigned int timeout, const int reason)
 {
 /**************************************
  *
- *	f b _ s h u t d o w n
+ *	f b 2 _ s h u t d o w n
  *
  **************************************
  *
@@ -5956,6 +5956,8 @@ int API_ROUTINE fb_shutdown(unsigned int timeout, const int reason)
  *	Shutdown firebird.
  *
  **************************************/
+	fprintf(stderr, "[FB2] fb2_shutdown called (timeout=%u, reason=%d)\n", timeout, reason);
+	fflush(stderr);
 	MutexLockGuard guard(singleShutdown);
 
 	if (shutdownStarted)

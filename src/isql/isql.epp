@@ -521,7 +521,7 @@ class FbShudown
 public:
 	~FbShudown()
 	{
-		fb_shutdown(0, fb_shutrsn_app_stopped);
+		fb2_shutdown(0, fb_shutrsn_app_stopped);
 	}
 };
 

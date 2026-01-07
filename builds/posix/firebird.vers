@@ -335,7 +335,7 @@ global:
 
 # Server shutdown support
 
-	fb_shutdown;
+	fb2_shutdown;
 	fb_shutdown_callback;
 
 # Other misc functions

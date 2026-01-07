@@ -328,7 +328,7 @@
 
 # Server shutdown support
 
-	_fb_shutdown
+	_fb2_shutdown
 	_fb_shutdown_callback
 
 # Other misc functions

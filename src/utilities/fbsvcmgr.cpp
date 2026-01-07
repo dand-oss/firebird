@@ -859,7 +859,7 @@ static int shutdownCallback(const int reason, const int, void*)
 	if (!recursion)
 	{
 		recursion = true;
-		fb_shutdown(0, reason);
+		fb2_shutdown(0, reason);
 		recursion = false;
 		return FB_FAILURE;
 	}
@@ -879,7 +879,7 @@ public:
 	{
 		if (active)
 		{
-			fb_shutdown(0, fb_shutrsn_exit_called);
+			fb2_shutdown(0, fb_shutrsn_exit_called);
 		}
 	}
 };

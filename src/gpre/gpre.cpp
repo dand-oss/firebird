@@ -35,7 +35,7 @@
 //
 //  TMN (Mike Nordell) 11.APR.2001 - Reduce compiler warnings
 //
-//  FSG (Frank Schlottmann-Gödde) 8.Mar.2002 - tiny cobol support
+//  FSG (Frank Schlottmann-Gï¿½dde) 8.Mar.2002 - tiny cobol support
 //       fixed Bug No. 526204
 //
 //  Stephen W. Boyd                - Added support for new features.
@@ -241,7 +241,7 @@ class FbShudown
 public:
 	~FbShudown()
 	{
-		fb_shutdown(0, fb_shutrsn_app_stopped);
+		fb2_shutdown(0, fb_shutrsn_app_stopped);
 	}
 };
 
@@ -959,7 +959,7 @@ void CPR_exit( int stat)
 		unlink(trace_file_name);
 #endif
 
-	fb_shutdown(0, fb_shutrsn_app_stopped);
+	fb2_shutdown(0, fb_shutrsn_app_stopped);
 	exit(stat);
 }
 
