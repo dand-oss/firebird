@@ -1889,7 +1889,7 @@ bool isBpbSegmented(unsigned parLength, const unsigned char* par)
 
 FbShutdown::~FbShutdown()
 {
-	fb_shutdown(0, reason);
+	fb5_shutdown(0, reason);
 }
 
 } // namespace fb_utils

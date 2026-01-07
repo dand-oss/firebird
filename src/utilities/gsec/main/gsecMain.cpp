@@ -37,7 +37,7 @@
 
 static void atexit_fb_shutdown()
 {
-	fb_shutdown(0, fb_shutrsn_app_stopped);
+	fb5_shutdown(0, fb_shutrsn_app_stopped);
 }
 
 

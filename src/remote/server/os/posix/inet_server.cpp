@@ -144,7 +144,7 @@ static void logSecurityDatabaseError(const char* path, ISC_STATUS* status)
 	}
 
 	const int SHUTDOWN_TIMEOUT = 5000;  // 5 sec
-	fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
+	fb5_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
 	exit(STARTUP_ERROR);
 }
 
@@ -462,7 +462,7 @@ int CLIB_ROUTINE main( int argc, char** argv)
 
 					if (!replPid)
 					{
-						fb_shutdown(10000, fb_shutrsn_exit_called);
+						fb5_shutdown(10000, fb_shutrsn_exit_called);
 						return FINI_OK;
 					}
 				}
@@ -510,7 +510,7 @@ int CLIB_ROUTINE main( int argc, char** argv)
 						kill(replPid, SIGKILL);
 				}
 
-				fb_shutdown(10000, fb_shutrsn_exit_called);
+				fb5_shutdown(10000, fb_shutrsn_exit_called);
 				return FINI_OK;
 			}
 		}
@@ -583,7 +583,7 @@ int CLIB_ROUTINE main( int argc, char** argv)
 
 		// perform atexit shutdown here when all globals in embedded library are active
 		// also sync with possibly already running shutdown in dedicated thread
-		fb_shutdown(10000, fb_shutrsn_exit_called);
+		fb5_shutdown(10000, fb_shutrsn_exit_called);
 
 		return FINI_OK;
 	}

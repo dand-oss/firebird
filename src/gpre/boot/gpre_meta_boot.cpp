@@ -773,7 +773,7 @@ void ERR_post(ISC_STATUS, ...)
 {
 }
 
-int ISC_EXPORT fb_shutdown(unsigned int, const int)
+int ISC_EXPORT fb5_shutdown(unsigned int, const int)
 {
 	return 0;
 }

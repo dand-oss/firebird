@@ -206,7 +206,7 @@ LRESULT CALLBACK WindowFunc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lPara
 				{
 					SetPriorityClass(GetCurrentProcess(), NORMAL_PRIORITY_CLASS);
 				}
-				fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_app_stopped);
+				fb5_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_app_stopped);
 				//DestroyWindow(hWnd);
 			}
 		}

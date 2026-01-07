@@ -760,7 +760,7 @@ private:
 		if (MasterInterfacePtr()->getProcessExiting())
 			InstanceControl::cancelCleanup();
 		else
-			fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
+			fb5_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
 	}
 };
 
@@ -794,7 +794,7 @@ private:
 				break;
 
 			// perform shutdown
-			if (fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
+			if (fb5_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
 			{
 				InstanceControl::registerShutdown(0);
 				break;	//exit(0);
@@ -3780,8 +3780,10 @@ ISC_STATUS API_ROUTINE isc_unwind_request(ISC_STATUS* userStatus, isc_req_handle
 
 
 // Shutdown firebird.
-int API_ROUTINE fb_shutdown(unsigned int timeout, const int reason)
+int API_ROUTINE fb5_shutdown(unsigned int timeout, const int reason)
 {
+	fprintf(stderr, "[FB5] fb5_shutdown called (timeout=%u, reason=%d)\n", timeout, reason);
+	fflush(stderr);
 	StatusVector status(NULL);
 	CheckStatusWrapper statusWrapper(&status);
 

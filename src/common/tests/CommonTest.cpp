@@ -6,7 +6,7 @@
 #include "boost/test/included/unit_test.hpp"
 
 
-int ISC_EXPORT fb_shutdown(unsigned int, const int)
+int ISC_EXPORT fb5_shutdown(unsigned int, const int)
 {
 	fb_assert(false);
 	return 0;

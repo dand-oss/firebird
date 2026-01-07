@@ -851,7 +851,7 @@ Service::Service(const TEXT* service_name, USHORT spb_length, const UCHAR* spb_d
 
 static THREAD_ENTRY_DECLARE svcShutdownThread(THREAD_ENTRY_PARAM)
 {
-	if (fb_shutdown(10 * 1000 /* 10 seconds */, fb_shutrsn_services) == FB_SUCCESS)
+	if (fb5_shutdown(10 * 1000 /* 10 seconds */, fb_shutrsn_services) == FB_SUCCESS)
 	{
 		InstanceControl::registerShutdown(0);
 		exit(0);

@@ -1115,7 +1115,7 @@ ULONG ISC_exception_post(ULONG except_code, const TEXT* err_msg, ISC_STATUS& isc
 		// This happens even if you run application as non-interactive service on
 		// "server" OS like Windows Server 2003.
 
-		fb_shutdown(0, fb_shutrsn_emergency);
+		fb5_shutdown(0, fb_shutrsn_emergency);
 		_exit(3);
 	}
 
