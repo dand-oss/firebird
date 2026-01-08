@@ -511,7 +511,7 @@ protected:
 
 			T* newdata = static_cast<T*>
 				(this->getPool().allocate(sizeof(T) * newcapacity ALLOC_ARGS));
-			if (preserve)
+			if (preserve && data)
 				memcpy(newdata, data, sizeof(T) * count);
 			freeData();
 			data = newdata;
