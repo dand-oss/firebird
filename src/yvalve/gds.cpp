@@ -282,7 +282,9 @@ VoidPtr API_ROUTINE gds__alloc_debug(SLONG size_request, const TEXT* filename, U
 
 ULONG API_ROUTINE gds__free(void* blk)
 {
-	getDefaultMemoryPool()->deallocate(blk);
+	if (Firebird::MemoryPool* pool = getDefaultMemoryPool()) {
+		pool->deallocate(blk);
+	}
 	return 0;
 }
 
