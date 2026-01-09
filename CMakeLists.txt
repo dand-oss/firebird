@@ -486,6 +486,17 @@ if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 endif()
 
 ########################################
+# LIBRARY cds (for concurrent data structures)
+########################################
+
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    set(WITH_TESTS OFF CACHE BOOL "" FORCE)
+    add_subdirectory("extern/libcds")
+    project_group(cds Extern)
+    project_group(cds-s Extern)
+endif()
+
+########################################
 # EXECUTABLE cloop
 ########################################
 
