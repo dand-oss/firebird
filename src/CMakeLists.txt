@@ -249,7 +249,9 @@ add_custom_command(
     DEPENDS
         cloop
         ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
-    COMMAND cloop
+    # Disable leak detection for cloop - it's a code generator that intentionally
+    # doesn't free AST objects (they live until process exit)
+    COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:cloop>
             ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
             c++
             ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
