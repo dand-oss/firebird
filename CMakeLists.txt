@@ -498,7 +498,7 @@ if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     # Fix MSVC build: libcds only sets these for MINGW
     if (MSVC)
         target_compile_definitions(cds PRIVATE CDS_BUILD_LIB)
-        target_compile_definitions(cds-s PRIVATE CDS_BUILD_STATIC_LIB)
+        target_compile_definitions(cds-s PUBLIC CDS_BUILD_STATIC_LIB)
     endif()
 endif()
 
