@@ -475,6 +475,16 @@ set_output_directory    (btyacc . CURRENT_DIR)
 endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
 ########################################
+# LIBRARY re2 (for SimilarToRegex)
+########################################
+
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    set(RE2_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    add_subdirectory("extern/re2")
+    project_group(re2 Extern)
+endif()
+
+########################################
 # EXECUTABLE cloop
 ########################################
 
