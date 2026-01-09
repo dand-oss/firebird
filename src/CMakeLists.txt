@@ -348,7 +348,7 @@ if (APPLE)
 endif()
 
 add_library                 (common ${common_src} ${common_os_src} ${common_include})
-target_link_libraries       (common ${LIB_mpr} libtommath libtomcrypt decNumber)
+target_link_libraries       (common ${LIB_mpr} libtommath libtomcrypt decNumber ZLIB::ZLIB)
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_dependencies_cc     (common UpdateCloopInterfaces)
 endif()
