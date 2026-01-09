@@ -418,6 +418,7 @@ include_directories("extern/decNumber")
 include_directories("extern/icu/include")
 include_directories("extern/zlib")
 include_directories("extern/libcds")
+include_directories("extern/re2")
 
 include_directories("src/include")
 include_directories("src/include/gen")
