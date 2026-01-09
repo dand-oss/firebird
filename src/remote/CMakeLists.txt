@@ -25,6 +25,7 @@ add_src_win32(remote_src
 file(GLOB remote_include "*.h")
 
 add_library             (remote ${remote_src} ${remote_include})
+target_link_libraries   (remote PRIVATE ZLIB::ZLIB)
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_dependencies_cc (remote UpdateCloopInterfaces)
 endif()
