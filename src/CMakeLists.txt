@@ -400,6 +400,7 @@ add_src_win32(yvalve_src
 #add_epp_suffix(yvalve_generated_src master)
 
 add_library                 (yvalve_common OBJECT ${yvalve_src} ${yvalve_include})
+target_link_libraries       (yvalve_common PRIVATE ZLIB::ZLIB)
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_dependencies_cc     (yvalve_common parse UpdateCloopInterfaces)
 endif()
