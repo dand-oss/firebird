@@ -208,6 +208,21 @@ if (UNIX)
     endif()
 endif()
 
+########################################
+# zlib - use ported zlib-ng
+########################################
+
+if (ASV_PLAT_PORTS)
+    set(_PORTS_PREFIX ${ASV_PLAT_PORTS})
+elseif (WIN32)
+    get_filename_component(_PORTS_PREFIX "${CMAKE_INSTALL_PREFIX}" DIRECTORY)
+endif()
+
+if (_PORTS_PREFIX)
+    set(ZLIB_ROOT "${_PORTS_PREFIX}/zlib-ng")
+endif()
+find_package(ZLIB REQUIRED)
+
 ################################################################################
 #
 # configure
@@ -415,7 +430,7 @@ include_directories("extern/libtommath")
 include_directories("extern/libtomcrypt/src/headers")
 include_directories("extern/decNumber")
 include_directories("extern/icu/include")
-include_directories("extern/zlib")
+# zlib - using ported zlib via find_package, include set above
 include_directories("extern/libcds")
 include_directories("extern/re2")
 
