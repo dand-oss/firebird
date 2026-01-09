@@ -329,6 +329,9 @@ endif()
 ################################################################################
 
 if (WIN32)
+    # ICU version for Windows (ICU 63.1)
+    set(ICU_VERSION "63")
+
     # icu - extract from zip if include dir doesn't exist
     set(ICU_WIN_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/include")
     if (NOT EXISTS "${ICU_WIN_INCLUDE}/unicode/ucnv.h")
@@ -341,17 +344,19 @@ if (WIN32)
     set(ICU_INCLUDE_DIR "${ICU_WIN_INCLUDE}")
     include_directories("${ICU_INCLUDE_DIR}")
 
-    # zlib - extract from zip if needed
-    set(ZLIB_WIN_INCLUDE "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib")
-    if (NOT EXISTS "${ZLIB_WIN_INCLUDE}/zlib.h")
-        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib/zlib.zip")
-            message(STATUS "Extracting pre-built zlib")
+    # icu data - extract icudt.zip if data file doesn't exist
+    file(GLOB ICU_DATA_FILES "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icudt*l.dat")
+    if (NOT ICU_DATA_FILES)
+        if (EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icudt.zip")
+            message(STATUS "Extracting ICU data from icudt.zip")
             file(ARCHIVE_EXTRACT
-                INPUT "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib/zlib.zip"
-                DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/extern/zlib"
+                INPUT "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu/icudt.zip"
+                DESTINATION "${CMAKE_CURRENT_SOURCE_DIR}/extern/icu"
             )
         endif()
     endif()
+
+    # zlib - use ported zlib via find_package, no extraction needed
 endif()
 
 if (UNIX)
