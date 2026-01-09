@@ -59,12 +59,6 @@ include(asv_cmake_defaults)
 asv_cmake_defaults( )
 ###############
 
-# Force C++17 - Firebird is designed for C++17, not C++23
-set(CMAKE_CXX_STANDARD 17)
-set(CMAKE_CXX_STANDARD_REQUIRED ON)
-set(CMAKE_C_STANDARD 11)
-set(CMAKE_C_STANDARD_REQUIRED ON)
-
 # Suppress warnings that are treated as errors by ASV cmake defaults
 # Firebird code predates modern strict warning requirements
 if (UNIX)
