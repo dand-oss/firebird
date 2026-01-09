@@ -494,6 +494,12 @@ if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_subdirectory("extern/libcds")
     project_group(cds Extern)
     project_group(cds-s Extern)
+
+    # Fix MSVC build: libcds only sets these for MINGW
+    if (MSVC)
+        target_compile_definitions(cds PRIVATE CDS_BUILD_LIB)
+        target_compile_definitions(cds-s PRIVATE CDS_BUILD_STATIC_LIB)
+    endif()
 endif()
 
 ########################################
