@@ -559,10 +559,8 @@ add_dependencies_cc         (engine_common parse UpdateCloopInterfaces)
 
 if (NOT CMAKE_CROSSCOMPILING)
 
-# Find libcds for concurrent data structures
-if (UNIX)
-    find_library(LIB_cds cds REQUIRED)
-endif()
+# CDS is built from extern/libcds - use static lib to avoid DLL export issues on Windows
+set(LIB_cds cds-s)
 
 add_library                 (boot_engine SHARED ${engine_generated_src_boot} ${VERSION_RC})
 target_link_libraries       (boot_engine engine_common boot_alice boot_burp common boot_yvalve ${LIB_cds} libtomcrypt libtommath)
