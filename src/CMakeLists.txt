@@ -556,6 +556,10 @@ file(GLOB_RECURSE engine_include "dsql/*.h" "jrd/*.h" include/gen/iberror.h)
 
 add_library                 (engine_common ${engine_src} ${engine_include} ${parse_src})
 add_dependencies_cc         (engine_common parse UpdateCloopInterfaces)
+# Link to cds-s to get CDS_BUILD_STATIC_LIB definition (disables __declspec(dllimport) on Windows)
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    target_link_libraries   (engine_common cds-s)
+endif()
 
 if (NOT CMAKE_CROSSCOMPILING)
 
@@ -649,7 +653,7 @@ set_exported_symbols        (srp fbplugin)
 ########################################
 
 add_library                 (legacy_auth SHARED auth/SecurityDatabase/LegacyServer.cpp ${VERSION_RC})
-target_link_libraries       (legacy_auth common yvalve)
+target_link_libraries       (legacy_auth remote common yvalve)
 set_target_properties       (legacy_auth PROPERTIES OUTPUT_NAME Legacy_Auth)
 set_output_directory        (legacy_auth plugins)
 set_exported_symbols        (legacy_auth fbplugin)
