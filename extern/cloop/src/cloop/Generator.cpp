@@ -80,11 +80,14 @@ FileGenerator::FileGenerator(const string& filename, const string& prefix)
 	: prefix(prefix)
 {
 	out = fopen(filename.c_str(), "w+");
+	if (!out)
+		throw runtime_error(string("Error opening output file '") + filename + "'.");
 }
 
 FileGenerator::~FileGenerator()
 {
-	fclose(out);
+	if (out)
+		fclose(out);
 }
 
 
