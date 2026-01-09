@@ -316,6 +316,7 @@ add_epp_suffix(burp_generated_src master)
 if (NOT CMAKE_CROSSCOMPILING)
 
 add_library                 (boot_burp ${burp_src} ${burp_generated_src_boot})
+target_link_libraries       (boot_burp PRIVATE ZLIB::ZLIB)
 project_group               (boot_burp Boot)
 
 endif() # if (NOT CMAKE_CROSSCOMPILING)
@@ -326,6 +327,7 @@ endif() # if (NOT CMAKE_CROSSCOMPILING)
 ########################################
 
 add_library                 (burp ${burp_src} ${burp_generated_src_master})
+target_link_libraries       (burp PRIVATE ZLIB::ZLIB)
 
 endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
