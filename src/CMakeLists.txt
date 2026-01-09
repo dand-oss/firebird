@@ -353,10 +353,11 @@ if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_dependencies_cc     (common UpdateCloopInterfaces)
 endif()
 if (UNIX)
-target_link_libraries       (common dl)
-# RE2 library for SimilarToRegex
-find_library(LIB_re2 re2 REQUIRED)
-target_link_libraries       (common ${LIB_re2})
+    target_link_libraries(common dl)
+endif()
+# RE2 library for SimilarToRegex (non-CLIENT builds)
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+    target_link_libraries(common re2)
 endif()
 
 # Use system malloc for ASAN/Valgrind compatibility
