@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <deque>
 #include <set>
+#include <format>
 #include <stdexcept>
 #include <string>
 #include <vector>
@@ -81,7 +82,7 @@ FileGenerator::FileGenerator(const string& filename, const string& prefix)
 {
 	out = fopen(filename.c_str(), "w+");
 	if (!out)
-		throw runtime_error(string("Error opening output file '") + filename + "'.");
+		throw runtime_error(std::format("Error opening output file '{}'.", filename));
 }
 
 FileGenerator::~FileGenerator()
