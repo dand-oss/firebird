@@ -11,6 +11,7 @@ set(remote_src
     remote.cpp
     inet.cpp
 
+    ../auth/SecDbCache.cpp
     ../auth/SecureRemotePassword/srp.cpp
     ../auth/SecureRemotePassword/srp.h
     ../auth/SecureRemotePassword/Message.h
