@@ -254,29 +254,46 @@ set(parse_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y
     ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske
 )
-add_custom_command(
-    OUTPUT y_tab.h y_tab.c
-    DEPENDS
-        btyacc
-        ${parse_src}
-    COMMAND sed -n "/%type .*/p" ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y > types.y
-    COMMAND sed "s/%type .*//" ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y > y.y
-    COMMAND btyacc -l -d -S ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske y.y
 
-    COMMAND sed -i "s/#define \\([A-Z].*\\)/#define TOK_\\1/g" y_tab.h
-    COMMAND sed -i "s/#define TOK_YY\\(.*\\)/#define YY\\1/g" y_tab.h
-
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.h include/gen/parse.h
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.c dsql/parse.cpp
-    COMMENT "Generating parse.cpp, parse.h"
-    VERBATIM
-)
-add_custom_target(parse
-    DEPENDS y_tab.h y_tab.c
-    SOURCES ${parse_src} y_tab.h y_tab.c
-)
+# Pre-generated parser files for Windows compatibility
+# On Windows: use pre-generated files from source tree (matches official build behavior)
+# On Unix: regenerate from parse.y using CMake scripts
+if (WIN32)
+    # Windows: Use pre-generated parser files
+    # parse.h is in src/include/gen/parse.h (same location as official Windows build)
+    # dsql_parse.cpp is compiled directly from pregenerated directory
+    set(PARSER_CPP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/dsql/pregenerated/dsql_parse.cpp)
+    add_custom_target(parse SOURCES ${parse_src})
+    message(STATUS "*** Using pregenerated parser (source tree) ***")
+else()
+    # Unix: Generate parser using CMake scripts
+    set(PARSER_CPP_FILE ${GENERATED_DIR}/dsql/parse.cpp)
+    add_custom_command(
+        OUTPUT y_tab.h y_tab.c
+        DEPENDS
+            btyacc
+            ${parse_src}
+            ${CMAKE_SOURCE_DIR}/builds/cmake/GenerateParser.cmake
+            ${CMAKE_SOURCE_DIR}/builds/cmake/FixParserTokens.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -D PARSE_Y_FILE=${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y
+            -D OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/builds/cmake/GenerateParser.cmake
+        COMMAND $<TARGET_FILE:btyacc> -l -d -S ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske y.y
+        COMMAND ${CMAKE_COMMAND}
+            -D OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/builds/cmake/FixParserTokens.cmake
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.h include/gen/parse.h
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.c dsql/parse.cpp
+        COMMENT "Generating parse.cpp, parse.h"
+    )
+    add_custom_target(parse
+        DEPENDS y_tab.h y_tab.c
+        SOURCES ${parse_src} y_tab.h y_tab.c
+    )
+    set_source_files_properties(dsql/parse.cpp include/gen/parse.h PROPERTIES GENERATED TRUE)
+endif()
 project_group(parse "Boot/Custom build steps")
-set_source_files_properties(dsql/parse.cpp include/gen/parse.h PROPERTIES GENERATED TRUE)
 
 
 ########################################
@@ -594,8 +611,8 @@ set(engine_src ${engine_src}
     utilities/gsec/gsec.cpp
     utilities/gstat/ppg.cpp
     utilities/nbackup/nbackup.cpp
-    # parse
-    ${GENERATED_DIR}/dsql/parse.cpp
+    # parse - uses PARSER_CPP_FILE set earlier (pregenerated on Windows, generated on Unix)
+    ${PARSER_CPP_FILE}
 )
 add_src_apple(engine_src
     jrd/os/posix/unix.cpp
