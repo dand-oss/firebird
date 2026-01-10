@@ -82,6 +82,30 @@ epp_process(master  epp_master_files        ${BOOT_GPRE_CMD} -n -m)
 ################################################################################
 
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+
+########################################
+# Boot environment setup
+# Copy firebird.msg and firebird.conf to boot_dir for boot tools
+########################################
+
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.msg
+    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${boot_dir}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        ${boot_dir}/firebird.msg
+    COMMENT "Copying firebird.msg to boot directory"
+)
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.conf
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${boot_dir}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
+        ${boot_dir}/firebird.conf
+    COMMENT "Copying firebird.conf to boot directory"
+)
+
 ########################################
 # BUILD STEP databases
 ########################################
@@ -98,6 +122,8 @@ add_custom_command(
         boot_isql
         boot_gfix
         ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     VERBATIM
     #
     COMMAND ${CMAKE_COMMAND} -E remove security.fdb
@@ -114,6 +140,8 @@ add_custom_command(
     DEPENDS
         boot_isql
         boot_gfix
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     VERBATIM
     #
     COMMAND ${CMAKE_COMMAND} -E remove metadata.fdb
@@ -178,29 +206,8 @@ add_custom_command(
         ${output_dir}/firebird.msg
     COMMENT "Copying pre-built firebird.msg to output directory"
 )
-# Also copy to boot_dir for boot tools (boot_gbak, boot_isql need this)
-add_custom_command(
-    OUTPUT ${boot_dir}/firebird.msg
-    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/share/firebird.msg
-        ${boot_dir}/firebird.msg
-    COMMENT "Copying pre-built firebird.msg to boot directory"
-)
-# Copy firebird.conf to boot_dir for boot tool configuration
-add_custom_command(
-    OUTPUT ${boot_dir}/firebird.conf
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
-        ${boot_dir}/firebird.conf
-    COMMENT "Copying firebird.conf to boot directory"
-)
-add_custom_target(messages ALL
-    DEPENDS
-        ${output_dir}/firebird.msg
-        ${boot_dir}/firebird.msg
-        ${boot_dir}/firebird.conf
-)
+# boot_dir copies are handled at top of this block (before databases)
+add_custom_target(messages ALL DEPENDS ${output_dir}/firebird.msg)
 project_group(messages "Boot/Custom build steps")
 
 endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - messages
