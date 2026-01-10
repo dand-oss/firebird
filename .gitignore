@@ -25,7 +25,7 @@ extern/int128/absl/numeric/libi128*.a
 extern/ttmath/debug/
 extern/ttmath/release/
 /Makefile
-/src/include/gen/parse.h
+# /src/include/gen/parse.h is now committed for Windows compatibility (pregenerated)
 /src/include/gen/autoconfig.auto
 /src/include/gen/autoconfig.h
 extern/libcds/lib/
