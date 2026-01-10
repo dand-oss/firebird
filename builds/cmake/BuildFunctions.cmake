@@ -272,7 +272,7 @@ function(create_command command type out)
     endif()
 
     # FIREBIRD points to dir which has standard layout: bin/, lib/, plugins/
-    set_win32(env "PATH=${dir}/bin\;%PATH%")
+    set_win32(env "PATH=${dir}\;${dir}/bin\;%PATH%")
     set_unix (env "PATH=${dir}/bin:$PATH")
     set_unix (env "${env}" "LD_LIBRARY_PATH=${dir}/lib:${dir}/bin:$LD_LIBRARY_PATH")
     set(env "${env}"

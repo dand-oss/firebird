@@ -1082,8 +1082,12 @@ add_custom_target(copy_files
     # headers
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/src/include/gen/iberror.h ${output_dir}/include/iberror.h
 )
-if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
+if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_dependencies_cc     (copy_files databases)
+endif()
+# employee_db creates employe2.fdb which copy_files copies to employee.fdb
+add_dependencies_cc         (copy_files employee_db)
+if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
     add_dependencies_unix_cc(copy_files makeHeader)
 endif()
 project_group(copy_files "Custom build steps")
