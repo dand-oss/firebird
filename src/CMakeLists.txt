@@ -137,10 +137,10 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E remove security_.fdb
     COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_security.sql
     COMMAND ${BOOT_ISQL_CMD} -q -i create_db_security.sql
-    COMMAND ${BOOT_GFIX_CMD} -write async security_.fdb
-    COMMAND ${BOOT_ISQL_CMD} -q security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
+    COMMAND ${BOOT_GFIX_CMD} -user SYSDBA -password masterkey -write async security_.fdb
+    COMMAND ${BOOT_ISQL_CMD} -q -user SYSDBA -password masterkey security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
     COMMAND ${CMAKE_COMMAND} -E copy_if_different security_.fdb security.fdb
-    COMMAND ${BOOT_GFIX_CMD} -write sync security.fdb
+    COMMAND ${BOOT_GFIX_CMD} -user SYSDBA -password masterkey -write sync security.fdb
 )
 add_custom_command(
     OUTPUT metadata.fdb
@@ -155,8 +155,8 @@ add_custom_command(
     COMMAND ${CMAKE_COMMAND} -E remove metadata_.fdb
     COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_metadata.sql
     COMMAND ${BOOT_ISQL_CMD} -q -i create_db_metadata.sql
-    COMMAND ${BOOT_GFIX_CMD} -sql_dialect 1 metadata_.fdb
-    COMMAND ${BOOT_GFIX_CMD} -mode read_only metadata_.fdb
+    COMMAND ${BOOT_GFIX_CMD} -user SYSDBA -password masterkey -sql_dialect 1 metadata_.fdb
+    COMMAND ${BOOT_GFIX_CMD} -user SYSDBA -password masterkey -mode read_only metadata_.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different metadata_.fdb metadata.fdb
 )
 add_custom_target(databases
