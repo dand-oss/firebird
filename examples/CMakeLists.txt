@@ -12,12 +12,30 @@ include(SourceGroups)
 
 if (NOT CMAKE_CROSSCOMPILING)
 
+# Create security5.fdb and firebird.conf in output_dir for embedded ISQL access
+# security.fdb is created in boot_dir (includes $<CONFIG> for multi-config generators)
+add_custom_command(
+    OUTPUT ${output_dir}/security5.fdb
+    DEPENDS ${boot_dir}/security.fdb
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${boot_dir}/security.fdb ${output_dir}/security5.fdb
+    COMMENT "Copying security5.fdb for embedded access"
+)
+add_custom_command(
+    OUTPUT ${output_dir}/firebird.conf
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf ${output_dir}/firebird.conf
+    COMMENT "Copying firebird.conf for embedded access"
+)
+
 add_custom_command(
     OUTPUT empbuild.fdb
     DEPENDS
         isql
         engine
         ${output_dir}/firebird.msg
+        ${output_dir}/security5.fdb
+        ${output_dir}/firebird.conf
         ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
     COMMAND ${CMAKE_COMMAND} -E remove empbuild.fdb
     COMMAND ${ISQL_CMD} -q -i ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
