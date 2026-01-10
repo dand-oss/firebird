@@ -132,7 +132,6 @@ add_custom_target(databases
     SOURCES
         ${databases_src}
 )
-add_dependencies_cc(databases msg_fdb)
 project_group(databases "Boot/Custom build steps")
 
 
@@ -179,7 +178,29 @@ add_custom_command(
         ${output_dir}/firebird.msg
     COMMENT "Copying pre-built firebird.msg to output directory"
 )
-add_custom_target(messages ALL DEPENDS ${output_dir}/firebird.msg)
+# Also copy to boot_dir for boot tools (boot_gbak, boot_isql need this)
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.msg
+    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        ${boot_dir}/firebird.msg
+    COMMENT "Copying pre-built firebird.msg to boot directory"
+)
+# Copy firebird.conf to boot_dir for boot tool configuration
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.conf
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
+        ${boot_dir}/firebird.conf
+    COMMENT "Copying firebird.conf to boot directory"
+)
+add_custom_target(messages ALL
+    DEPENDS
+        ${output_dir}/firebird.msg
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
+)
 project_group(messages "Boot/Custom build steps")
 
 endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - messages
@@ -195,6 +216,8 @@ add_custom_command(
     DEPENDS
         boot_gbak
         ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     COMMAND ${CMAKE_COMMAND} -E remove -f msg.fdb
     COMMAND ${BOOT_GBAK_CMD} -c -REP ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak msg.fdb
 )
