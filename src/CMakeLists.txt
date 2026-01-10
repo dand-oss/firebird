@@ -244,38 +244,44 @@ set_source_files_properties(dsql/parse.cpp include/gen/parse.h PROPERTIES GENERA
 # BUILD_STEP UpdateCloopInterfaces
 ########################################
 
+# Generated header goes to build directory (source may be read-only on Windows)
+set(CLOOP_OUTPUT_DIR ${CMAKE_BINARY_DIR}/src/include/firebird)
+set(CLOOP_OUTPUT_FILE ${CLOOP_OUTPUT_DIR}/IdlFbInterfaces.h)
+
 if (WIN32)
     # On Windows, run cloop directly without env wrapper
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
+        OUTPUT ${CLOOP_OUTPUT_FILE}
         DEPENDS
             cloop
             ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CLOOP_OUTPUT_DIR}
         COMMAND $<TARGET_FILE:cloop>
                 ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
                 c++
-                ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
+                ${CLOOP_OUTPUT_FILE}
                 IDL_FB_INTERFACES_H Firebird I
         COMMENT "Updating cloop interfaces..."
     )
 else()
     add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
+        OUTPUT ${CLOOP_OUTPUT_FILE}
         DEPENDS
             cloop
             ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
         # Disable leak detection for cloop - it's a code generator that intentionally
         # doesn't free AST objects (they live until process exit)
+        COMMAND ${CMAKE_COMMAND} -E make_directory ${CLOOP_OUTPUT_DIR}
         COMMAND ${CMAKE_COMMAND} -E env ASAN_OPTIONS=detect_leaks=0 $<TARGET_FILE:cloop>
                 ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
                 c++
-                ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
+                ${CLOOP_OUTPUT_FILE}
                 IDL_FB_INTERFACES_H Firebird I
         COMMENT "Updating cloop interfaces..."
     )
 endif()
 add_custom_target(UpdateCloopInterfaces
-    DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/IdlFbInterfaces.h
+    DEPENDS ${CLOOP_OUTPUT_FILE}
     SOURCES ${CMAKE_CURRENT_SOURCE_DIR}/include/firebird/FirebirdInterface.idl
 )
 project_group(UpdateCloopInterfaces "Boot/Custom build steps")
