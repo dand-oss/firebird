@@ -13,7 +13,7 @@ include(SourceGroups)
 if (NOT CMAKE_CROSSCOMPILING)
 
 # Create security5.fdb and firebird.conf in output_dir for embedded ISQL access
-# security.fdb is created in boot_dir (includes $<CONFIG> for multi-config generators)
+# security.fdb is created in boot_dir
 add_custom_command(
     OUTPUT ${output_dir}/security5.fdb
     DEPENDS ${boot_dir}/security.fdb

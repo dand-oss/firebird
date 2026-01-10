@@ -141,7 +141,11 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${output_dir})
 get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
 if (is_multi_config)
     set(output_dir ${output_dir}/$<CONFIG>)
-    set(boot_dir ${boot_dir}/$<CONFIG>)
+    # Only add $<CONFIG> to boot_dir for Ninja Multi-Config
+    # MSVC/Xcode custom commands run from CMAKE_CURRENT_BINARY_DIR (no $<CONFIG>)
+    if (CMAKE_GENERATOR STREQUAL "Ninja Multi-Config")
+        set(boot_dir ${boot_dir}/$<CONFIG>)
+    endif()
 endif()
 
 if (MSVC AND DEFAULT_CONFIGURATION)
