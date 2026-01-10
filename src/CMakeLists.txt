@@ -105,6 +105,13 @@ add_custom_command(
         ${boot_dir}/firebird.conf
     COMMENT "Copying firebird.conf to boot directory"
 )
+# Create explicit target for boot environment to ensure proper dependency ordering
+add_custom_target(boot_environment
+    DEPENDS
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
+)
+project_group(boot_environment "Boot/Custom build steps")
 
 ########################################
 # BUILD STEP databases
@@ -160,6 +167,7 @@ add_custom_target(databases
     SOURCES
         ${databases_src}
 )
+add_dependencies(databases boot_environment)
 project_group(databases "Boot/Custom build steps")
 
 
@@ -233,6 +241,7 @@ add_custom_target(msg_fdb
         boot_engine
         msg.fdb
 )
+add_dependencies(msg_fdb boot_environment)
 project_group(msg_fdb "Boot/Custom build steps")
 
 endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - databases, messages
