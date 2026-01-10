@@ -135,7 +135,7 @@ add_custom_command(
     #
     COMMAND ${CMAKE_COMMAND} -E remove security.fdb
     COMMAND ${CMAKE_COMMAND} -E remove security_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb';" > create_db_security.sql
+    COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_security.sql
     COMMAND ${BOOT_ISQL_CMD} -q -i create_db_security.sql
     COMMAND ${BOOT_GFIX_CMD} -write async security_.fdb
     COMMAND ${BOOT_ISQL_CMD} -q security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
@@ -153,7 +153,7 @@ add_custom_command(
     #
     COMMAND ${CMAKE_COMMAND} -E remove metadata.fdb
     COMMAND ${CMAKE_COMMAND} -E remove metadata_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb';" > create_db_metadata.sql
+    COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_metadata.sql
     COMMAND ${BOOT_ISQL_CMD} -q -i create_db_metadata.sql
     COMMAND ${BOOT_GFIX_CMD} -sql_dialect 1 metadata_.fdb
     COMMAND ${BOOT_GFIX_CMD} -mode read_only metadata_.fdb
