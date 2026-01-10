@@ -133,6 +133,8 @@ set(msgs_src
 set(databases_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
 )
+# For multi-config generators, custom commands run in config-specific directory
+# Use boot_dir (includes $<CONFIG>) so OUTPUT matches where file is created
 add_custom_command(
     OUTPUT ${boot_dir}/security.fdb
     DEPENDS
