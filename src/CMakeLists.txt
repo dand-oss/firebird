@@ -115,11 +115,14 @@ add_custom_target(boot_environment
 )
 project_group(boot_environment "Boot/Custom build steps")
 
-# Boot tool environment - sets FIREBIRD and LD_LIBRARY_PATH for shared library loading
+# Boot tool environment - sets FIREBIRD and library paths for shared library loading
 # This is used by all boot tool invocations via cmake -E env
 set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
-if (UNIX)
-    # On Unix, also set LD_LIBRARY_PATH for shared library loading
+if (WIN32)
+    # Windows: DLLs found via PATH
+    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
+else()
+    # Unix: shared libs found via LD_LIBRARY_PATH
     set(BOOT_ENV ${BOOT_ENV} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
 endif()
 

@@ -14,7 +14,11 @@ if (NOT CMAKE_CROSSCOMPILING)
 
 # Environment for master tools (isql, gpre, etc.) - uses output_dir
 set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}")
-if (UNIX)
+if (WIN32)
+    # Windows: DLLs found via PATH
+    set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}\;${output_dir}/bin\;$ENV{PATH}")
+else()
+    # Unix: shared libs found via LD_LIBRARY_PATH
     set(MASTER_ENV ${MASTER_ENV} "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}/bin")
 endif()
 
