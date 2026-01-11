@@ -63,16 +63,18 @@ set(epp_master_files
 
 if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
 
-epp_process(boot    epp_boot_internal_files ${GPRE_BOOT_CMD} -lang_internal -n -ids -ocxx -m)
-epp_process(boot    epp_boot_ocxx_files     ${GPRE_BOOT_CMD} -lang_internal -n -ids -ocxx)
-epp_process(boot    epp_boot_files          ${GPRE_BOOT_CMD} -n -m)
-epp_process(boot    epp_boot_gds_files      ${GPRE_BOOT_CMD} -n -ids -gds_cxx)
+# Boot phase uses gpre_boot (built without databases)
+epp_process(boot    epp_boot_internal_files gpre_boot -lang_internal -n -ids -ocxx -m)
+epp_process(boot    epp_boot_ocxx_files     gpre_boot -lang_internal -n -ids -ocxx)
+epp_process(boot    epp_boot_files          gpre_boot -n -m)
+epp_process(boot    epp_boot_gds_files      gpre_boot -n -ids -gds_cxx)
 
-epp_process(master  epp_boot_internal_files ${BOOT_GPRE_CMD} -n -m -ids -ocxx -m)
-epp_process(master  epp_boot_ocxx_files     ${BOOT_GPRE_CMD} -n -ids -ocxx)
-epp_process(master  epp_boot_files          ${BOOT_GPRE_CMD} -n -m)
-epp_process(master  epp_boot_gds_files      ${BOOT_GPRE_CMD} -n -ids -gds_cxx)
-epp_process(master  epp_master_files        ${BOOT_GPRE_CMD} -n -m)
+# Master phase uses boot_gpre (full gpre with database access)
+epp_process(master  epp_boot_internal_files boot_gpre -n -m -ids -ocxx -m)
+epp_process(master  epp_boot_ocxx_files     boot_gpre -n -ids -ocxx)
+epp_process(master  epp_boot_files          boot_gpre -n -m)
+epp_process(master  epp_boot_gds_files      boot_gpre -n -ids -gds_cxx)
+epp_process(master  epp_master_files        boot_gpre -n -m)
 
 
 ################################################################################
@@ -82,6 +84,45 @@ epp_process(master  epp_master_files        ${BOOT_GPRE_CMD} -n -m)
 ################################################################################
 
 if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+
+########################################
+# Boot environment setup
+# Copy firebird.msg and firebird.conf to boot_dir for boot tools
+########################################
+
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.msg
+    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${boot_dir}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        ${boot_dir}/firebird.msg
+    COMMENT "Copying firebird.msg to boot directory"
+)
+add_custom_command(
+    OUTPUT ${boot_dir}/firebird.conf
+    COMMAND ${CMAKE_COMMAND} -E make_directory ${boot_dir}
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf
+        ${boot_dir}/firebird.conf
+    COMMENT "Copying firebird.conf to boot directory"
+)
+# Create explicit target for boot environment to ensure proper dependency ordering
+add_custom_target(boot_environment
+    DEPENDS
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
+)
+project_group(boot_environment "Boot/Custom build steps")
+
+# Boot tool environment - sets FIREBIRD and LD_LIBRARY_PATH for shared library loading
+# This is used by all boot tool invocations via cmake -E env
+set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
+if (UNIX)
+    # On Unix, also set LD_LIBRARY_PATH for shared library loading
+    set(BOOT_ENV ${BOOT_ENV} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+endif()
+
 ########################################
 # BUILD STEP databases
 ########################################
@@ -95,36 +136,42 @@ set(databases_src
 add_custom_command(
     OUTPUT ${boot_dir}/security.fdb
     DEPENDS
-        boot_isql
-        boot_gfix
+        $<TARGET_FILE:boot_isql>
+        $<TARGET_FILE:boot_gfix>
+        $<TARGET_FILE:boot_engine>
         ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     VERBATIM
     WORKING_DIRECTORY ${boot_dir}
     #
     COMMAND ${CMAKE_COMMAND} -E remove security.fdb
     COMMAND ${CMAKE_COMMAND} -E remove security_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb';" > create_db_security.sql
-    COMMAND ${BOOT_ISQL_CMD} -q -i create_db_security.sql
-    COMMAND ${BOOT_GFIX_CMD} -write async security_.fdb
-    COMMAND ${BOOT_ISQL_CMD} -q security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
+    COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_security.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i create_db_security.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -write async security_.fdb
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -user SYSDBA -password masterkey security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
     COMMAND ${CMAKE_COMMAND} -E copy_if_different security_.fdb security.fdb
-    COMMAND ${BOOT_GFIX_CMD} -write sync security.fdb
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -write sync security.fdb
     COMMENT "Generating security.fdb"
 )
 add_custom_command(
     OUTPUT ${boot_dir}/metadata.fdb
     DEPENDS
-        boot_isql
-        boot_gfix
+        $<TARGET_FILE:boot_isql>
+        $<TARGET_FILE:boot_gfix>
+        $<TARGET_FILE:boot_engine>
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     VERBATIM
     WORKING_DIRECTORY ${boot_dir}
     #
     COMMAND ${CMAKE_COMMAND} -E remove metadata.fdb
     COMMAND ${CMAKE_COMMAND} -E remove metadata_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb';" > create_db_metadata.sql
-    COMMAND ${BOOT_ISQL_CMD} -q -i create_db_metadata.sql
-    COMMAND ${BOOT_GFIX_CMD} -sql_dialect 1 metadata_.fdb
-    COMMAND ${BOOT_GFIX_CMD} -mode read_only metadata_.fdb
+    COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_metadata.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i create_db_metadata.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -sql_dialect 1 metadata_.fdb
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -mode read_only metadata_.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different metadata_.fdb metadata.fdb
     COMMENT "Generating metadata.fdb"
 )
@@ -136,7 +183,7 @@ add_custom_target(databases
     SOURCES
         ${databases_src}
 )
-add_dependencies_cc(databases msg_fdb)
+add_dependencies(databases boot_environment)
 project_group(databases "Boot/Custom build steps")
 
 
@@ -153,8 +200,8 @@ add_custom_command(
         msg_fdb
     #
     COMMAND ${CMAKE_COMMAND} -E remove firebird.msg
-    COMMAND ${BUILD_MSG_CMD} -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg -L all
-    COMMAND ${BUILD_MSG_CMD} -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:build_msg> -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg -L all
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:build_msg> -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg
     COMMAND ${CMAKE_COMMAND} -E copy_if_different firebird.msg ${output_dir}/firebird.msg
 )
 add_custom_command(
@@ -166,7 +213,7 @@ add_custom_command(
     #
     COMMAND ${CMAKE_COMMAND} -E echo "" > codes_headers.dummy
     COMMAND ${CMAKE_COMMAND} -E echo Building codes header...
-    COMMAND ${CODES_CMD} ${CMAKE_CURRENT_SOURCE_DIR}/include/gen ${CMAKE_SOURCE_DIR}/lang_helpers
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:codes> ${CMAKE_CURRENT_SOURCE_DIR}/include/gen ${CMAKE_SOURCE_DIR}/lang_helpers
 )
 add_custom_target(messages ALL DEPENDS firebird.msg codes_headers.dummy)
 project_group(messages "Boot/Custom build steps")
@@ -183,6 +230,7 @@ add_custom_command(
         ${output_dir}/firebird.msg
     COMMENT "Copying pre-built firebird.msg to output directory"
 )
+# boot_dir copies are handled at top of this block (before databases)
 add_custom_target(messages ALL DEPENDS ${output_dir}/firebird.msg)
 project_group(messages "Boot/Custom build steps")
 
@@ -198,10 +246,13 @@ add_custom_command(
     VERBATIM
     WORKING_DIRECTORY ${boot_dir}
     DEPENDS
-        boot_gbak
+        $<TARGET_FILE:boot_gbak>
+        $<TARGET_FILE:boot_engine>
         ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak
+        ${boot_dir}/firebird.msg
+        ${boot_dir}/firebird.conf
     COMMAND ${CMAKE_COMMAND} -E remove -f msg.fdb
-    COMMAND ${BOOT_GBAK_CMD} -c -REP ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak msg.fdb
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gbak> -c -REP ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak msg.fdb
     COMMENT "Restoring msg.fdb from backup"
 )
 add_custom_target(msg_fdb
@@ -209,6 +260,7 @@ add_custom_target(msg_fdb
         boot_engine
         ${boot_dir}/msg.fdb
 )
+add_dependencies(msg_fdb boot_environment)
 project_group(msg_fdb "Boot/Custom build steps")
 
 endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - databases, messages
@@ -221,29 +273,46 @@ set(parse_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y
     ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske
 )
-add_custom_command(
-    OUTPUT y_tab.h y_tab.c
-    DEPENDS
-        btyacc
-        ${parse_src}
-    COMMAND sed -n "/%type .*/p" ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y > types.y
-    COMMAND sed "s/%type .*//" ${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y > y.y
-    COMMAND btyacc -l -d -S ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske y.y
 
-    COMMAND sed -i "s/#define \\([A-Z].*\\)/#define TOK_\\1/g" y_tab.h
-    COMMAND sed -i "s/#define TOK_YY\\(.*\\)/#define YY\\1/g" y_tab.h
-
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.h include/gen/parse.h
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.c dsql/parse.cpp
-    COMMENT "Generating parse.cpp, parse.h"
-    VERBATIM
-)
-add_custom_target(parse
-    DEPENDS y_tab.h y_tab.c
-    SOURCES ${parse_src} y_tab.h y_tab.c
-)
+# Pre-generated parser files for Windows compatibility
+# On Windows: use pre-generated files from source tree (matches official build behavior)
+# On Unix: regenerate from parse.y using CMake scripts
+if (WIN32)
+    # Windows: Use pre-generated parser files
+    # parse.h is in src/include/gen/parse.h (same location as official Windows build)
+    # dsql_parse.cpp is compiled directly from pregenerated directory
+    set(PARSER_CPP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/dsql/pregenerated/dsql_parse.cpp)
+    add_custom_target(parse SOURCES ${parse_src})
+    message(STATUS "*** Using pregenerated parser (source tree) ***")
+else()
+    # Unix: Generate parser using CMake scripts
+    set(PARSER_CPP_FILE ${GENERATED_DIR}/dsql/parse.cpp)
+    add_custom_command(
+        OUTPUT y_tab.h y_tab.c
+        DEPENDS
+            btyacc
+            ${parse_src}
+            ${CMAKE_SOURCE_DIR}/builds/cmake/GenerateParser.cmake
+            ${CMAKE_SOURCE_DIR}/builds/cmake/FixParserTokens.cmake
+        COMMAND ${CMAKE_COMMAND}
+            -D PARSE_Y_FILE=${CMAKE_CURRENT_SOURCE_DIR}/dsql/parse.y
+            -D OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/builds/cmake/GenerateParser.cmake
+        COMMAND $<TARGET_FILE:btyacc> -l -d -S ${CMAKE_CURRENT_SOURCE_DIR}/dsql/btyacc_fb.ske y.y
+        COMMAND ${CMAKE_COMMAND}
+            -D OUTPUT_DIR=${CMAKE_CURRENT_BINARY_DIR}
+            -P ${CMAKE_SOURCE_DIR}/builds/cmake/FixParserTokens.cmake
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.h include/gen/parse.h
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different y_tab.c dsql/parse.cpp
+        COMMENT "Generating parse.cpp, parse.h"
+    )
+    add_custom_target(parse
+        DEPENDS y_tab.h y_tab.c
+        SOURCES ${parse_src} y_tab.h y_tab.c
+    )
+    set_source_files_properties(dsql/parse.cpp include/gen/parse.h PROPERTIES GENERATED TRUE)
+endif()
 project_group(parse "Boot/Custom build steps")
-set_source_files_properties(dsql/parse.cpp include/gen/parse.h PROPERTIES GENERATED TRUE)
 
 
 ########################################
@@ -561,8 +630,8 @@ set(engine_src ${engine_src}
     utilities/gsec/gsec.cpp
     utilities/gstat/ppg.cpp
     utilities/nbackup/nbackup.cpp
-    # parse
-    ${GENERATED_DIR}/dsql/parse.cpp
+    # parse - uses PARSER_CPP_FILE set earlier (pregenerated on Windows, generated on Unix)
+    ${PARSER_CPP_FILE}
 )
 add_src_apple(engine_src
     jrd/os/posix/unix.cpp
@@ -1059,7 +1128,7 @@ endif()
 add_custom_target(copy_files
     #ALL # uncomment this to copy files every build
     # databases
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${GENERATED_DIR}/security.fdb ${output_dir}/security5.fdb
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/security.fdb ${output_dir}/security5.fdb
     # configs, text files
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/builds/install/misc/firebird.conf ${output_dir}/firebird.conf
     COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/builds/install/misc/databases.conf ${output_dir}/databases.conf

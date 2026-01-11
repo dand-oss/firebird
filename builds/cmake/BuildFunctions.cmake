@@ -83,8 +83,21 @@ endif(UNIX)
 ########################################
 # FUNCTION epp_process
 ########################################
-function(epp_process type files)
+# Usage: epp_process(type files gpre_target [extra_args...])
+# type: "boot" or "master"
+# files: variable name containing list of .epp files
+# gpre_target: CMake target name (gpre_boot or boot_gpre)
+# extra_args: additional arguments to pass to gpre
+function(epp_process type files gpre_target)
     set(epp_suffix ".${type}.cpp")
+    # Get extra args after the required parameters
+    set(extra_args ${ARGN})
+
+    # Build environment command for boot tools
+    set(ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
+    if (UNIX)
+        set(ENV_CMD ${ENV_CMD} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+    endif()
 
     foreach(F ${${files}})
         set(in  ${CMAKE_CURRENT_SOURCE_DIR}/${F})
@@ -95,25 +108,23 @@ function(epp_process type files)
         if ("${type}" STREQUAL "boot")
             add_custom_command(
                 OUTPUT ${out}
-                DEPENDS gpre_boot ${in}
+                DEPENDS ${gpre_target} ${in}
                 COMMENT "Calling GPRE boot for ${F}"
-                #
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-                COMMAND ${ARGN} ${in} ${out}
+                COMMAND ${ENV_CMD} $<TARGET_FILE:${gpre_target}> ${extra_args} ${in} ${out}
             )
         elseif ("${type}" STREQUAL "master")
             get_filename_component(file ${out} NAME)
             set(dir ${dir}/${file}.d)
             add_custom_command(
                 OUTPUT ${out}
-                DEPENDS databases msg_fdb boot_gpre ${in}
+                DEPENDS databases msg_fdb ${gpre_target} ${in}
                 COMMENT "Calling GPRE master for ${F}"
-                #
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/metadata.fdb ${dir}/yachts.lnk
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/security.fdb ${dir}/security.fdb
                 COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/msg.fdb ${dir}/msg.fdb
-                COMMAND ${ARGN} -b ${dir}/ ${in} ${out}
+                COMMAND ${ENV_CMD} $<TARGET_FILE:${gpre_target}> ${extra_args} -b ${dir}/ ${in} ${out}
             )
         endif()
     endforeach()
@@ -251,100 +262,5 @@ function(crosscompile_prebuild_steps)
         execute_process(COMMAND ${CMAKE_COMMAND} -E copy_if_different ${NATIVE_BUILD_DIR}/src/include/gen/parse.h ${CMAKE_BINARY_DIR}/src/include/gen/parse.h)
     endif()
 endfunction(crosscompile_prebuild_steps)
-
-########################################
-# FUNCTION create_command
-########################################
-function(create_command command type out)
-    set(dir ${output_dir})
-    if ("${type}" STREQUAL "boot")
-        set(dir ${boot_dir})
-    endif()
-
-    set(cmd_name ${command})
-    get_property(is_multi_config GLOBAL PROPERTY GENERATOR_IS_MULTI_CONFIG)
-    if (is_multi_config)
-        set(conf _$<CONFIG>)
-        # For multi-config, boot_dir/output_dir already include $<CONFIG> suffix
-        # So paths are: ${dir}/bin, ${dir}/lib, ${dir}/plugins
-    else()
-        set(conf)
-    endif()
-
-    # FIREBIRD points to dir which has standard layout: bin/, lib/, plugins/
-    set_win32(env "PATH=${dir}\;${dir}/bin\;%PATH%")
-    set_unix (env "PATH=${dir}/bin:$PATH")
-    set_unix (env "${env}" "LD_LIBRARY_PATH=${dir}/lib:${dir}/bin:$LD_LIBRARY_PATH")
-    set(env "${env}"
-        FIREBIRD=${dir}
-    )
-
-    set(pre_cmd)
-    set(ext .sh)
-    set(export export)
-    set(options $*)
-    set(perm)
-    if (WIN32)
-        set(pre_cmd @)
-        set(ext .bat)
-        set(export set)
-        set(options %*)
-    endif()
-    set(cmd_name ${cmd_name}${conf}${ext})
-    set(cmd_name ${CMAKE_BINARY_DIR}/src/${cmd_name})
-
-    set(content)
-    foreach(e ${env})
-        set(content "${content}${pre_cmd}${export} ${e}\n")
-    endforeach()
-
-    set(cmd $<TARGET_FILE:${cmd}>)
-    set(content "${content}${pre_cmd}${cmd} ${options}")
-    file(GENERATE OUTPUT ${cmd_name} CONTENT "${content}")
-
-    if (UNIX)
-        set(cmd_name chmod u+x ${cmd_name} COMMAND ${cmd_name})
-    endif()
-
-    string(TOUPPER ${command} CMD)
-    set(${CMD}_CMD ${cmd_name} PARENT_SCOPE)
-    set(${out} ${CMD}_CMD PARENT_SCOPE)
-endfunction(create_command)
-
-########################################
-# FUNCTION create_boot_commands
-########################################
-function(create_boot_commands)
-    set(cmd_list
-        boot_isql
-        boot_gpre
-        boot_gbak
-        boot_gfix
-        gpre_boot
-    )
-    # build_msg and codes only exist in SERVER mode
-    if (FIREBIRD_BUILD_MODE STREQUAL "SERVER")
-        list(APPEND cmd_list build_msg codes)
-    endif()
-    foreach(cmd ${cmd_list})
-        create_command(${cmd} boot out)
-        set(${out} ${${out}} PARENT_SCOPE)
-    endforeach()
-endfunction(create_boot_commands)
-
-########################################
-# FUNCTION create_master_commands
-########################################
-function(create_master_commands)
-    set(cmd_list
-        isql
-        gpre
-        empbuild
-    )
-    foreach(cmd ${cmd_list})
-        create_command(${cmd} master out)
-        set(${out} ${${out}} PARENT_SCOPE)
-    endforeach()
-endfunction(create_master_commands)
 
 ################################################################################
