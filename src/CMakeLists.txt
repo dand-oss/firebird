@@ -117,13 +117,13 @@ project_group(boot_environment "Boot/Custom build steps")
 
 # Boot tool environment - sets FIREBIRD and library paths for shared library loading
 # This is used by all boot tool invocations via cmake -E env
-set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
+# Note: boot_dir already includes $<CONFIG> for multi-config generators (set in CMakeLists.txt)
 if (WIN32)
-    # Windows: DLLs found via PATH
-    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
+    # No PATH needed - Windows finds DLLs in same directory as EXE
+    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
 else()
-    # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
-    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
+    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}")
 endif()
 
 ########################################

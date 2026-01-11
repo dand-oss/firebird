@@ -13,13 +13,13 @@ include(SourceGroups)
 if (NOT CMAKE_CROSSCOMPILING)
 
 # Environment for master tools (isql, gpre, etc.) - uses output_dir
-set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}")
+# Note: output_dir already includes $<CONFIG> for multi-config generators
 if (WIN32)
-    # Windows: DLLs found via PATH
-    set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}\;${output_dir}/bin\;$ENV{PATH}")
+    # No PATH needed - Windows finds DLLs in same directory as EXE
+    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}" "ASAN_OPTIONS=detect_leaks=0")
 else()
-    # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
-    set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}/bin")
+    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}" "ASAN_OPTIONS=detect_leaks=0")
+    set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}")
 endif()
 
 # Create security5.fdb and firebird.conf in output_dir for embedded ISQL access
