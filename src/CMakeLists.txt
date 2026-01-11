@@ -122,8 +122,8 @@ if (WIN32)
     # Windows: DLLs found via PATH
     set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
 else()
-    # Unix: shared libs found via LD_LIBRARY_PATH
-    set(BOOT_ENV ${BOOT_ENV} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+    # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
+    set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
 endif()
 
 ########################################
