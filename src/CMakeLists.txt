@@ -93,12 +93,13 @@ set(databases_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
 )
 add_custom_command(
-    OUTPUT security.fdb
+    OUTPUT ${boot_dir}/security.fdb
     DEPENDS
         boot_isql
         boot_gfix
         ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
     VERBATIM
+    WORKING_DIRECTORY ${boot_dir}
     #
     COMMAND ${CMAKE_COMMAND} -E remove security.fdb
     COMMAND ${CMAKE_COMMAND} -E remove security_.fdb
@@ -108,13 +109,15 @@ add_custom_command(
     COMMAND ${BOOT_ISQL_CMD} -q security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
     COMMAND ${CMAKE_COMMAND} -E copy_if_different security_.fdb security.fdb
     COMMAND ${BOOT_GFIX_CMD} -write sync security.fdb
+    COMMENT "Generating security.fdb"
 )
 add_custom_command(
-    OUTPUT metadata.fdb
+    OUTPUT ${boot_dir}/metadata.fdb
     DEPENDS
         boot_isql
         boot_gfix
     VERBATIM
+    WORKING_DIRECTORY ${boot_dir}
     #
     COMMAND ${CMAKE_COMMAND} -E remove metadata.fdb
     COMMAND ${CMAKE_COMMAND} -E remove metadata_.fdb
@@ -123,12 +126,13 @@ add_custom_command(
     COMMAND ${BOOT_GFIX_CMD} -sql_dialect 1 metadata_.fdb
     COMMAND ${BOOT_GFIX_CMD} -mode read_only metadata_.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different metadata_.fdb metadata.fdb
+    COMMENT "Generating metadata.fdb"
 )
 add_custom_target(databases
     DEPENDS
         boot_engine
-        metadata.fdb
-        security.fdb
+        ${boot_dir}/metadata.fdb
+        ${boot_dir}/security.fdb
     SOURCES
         ${databases_src}
 )
@@ -190,18 +194,20 @@ endif() # if (FIREBIRD_BUILD_MODE STREQUAL "SERVER") - messages
 ########################################
 
 add_custom_command(
-    OUTPUT msg.fdb
+    OUTPUT ${boot_dir}/msg.fdb
     VERBATIM
+    WORKING_DIRECTORY ${boot_dir}
     DEPENDS
         boot_gbak
         ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak
     COMMAND ${CMAKE_COMMAND} -E remove -f msg.fdb
     COMMAND ${BOOT_GBAK_CMD} -c -REP ${CMAKE_SOURCE_DIR}/builds/misc/msg.gbak msg.fdb
+    COMMENT "Restoring msg.fdb from backup"
 )
 add_custom_target(msg_fdb
     DEPENDS
         boot_engine
-        msg.fdb
+        ${boot_dir}/msg.fdb
 )
 project_group(msg_fdb "Boot/Custom build steps")
 
