@@ -133,6 +133,14 @@ set(msgs_src
 set(databases_src
     ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
 )
+
+# Create SQL files for database creation at configure time
+# Using shell redirect (>) in COMMAND doesn't work with VERBATIM on Windows
+set(create_db_security_sql ${CMAKE_CURRENT_BINARY_DIR}/create_db_security.sql)
+set(create_db_metadata_sql ${CMAKE_CURRENT_BINARY_DIR}/create_db_metadata.sql)
+file(WRITE ${create_db_security_sql} "create database 'security_.fdb' user 'SYSDBA' password 'masterkey';\n")
+file(WRITE ${create_db_metadata_sql} "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';\n")
+
 add_custom_command(
     OUTPUT security.fdb
     DEPENDS
@@ -147,8 +155,7 @@ add_custom_command(
     #
     COMMAND ${CMAKE_COMMAND} -E remove security.fdb
     COMMAND ${CMAKE_COMMAND} -E remove security_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'security_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_security.sql
-    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i create_db_security.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i ${create_db_security_sql}
     COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -write async security_.fdb
     COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -user SYSDBA -password masterkey security_.fdb -i ${CMAKE_CURRENT_SOURCE_DIR}/dbs/security.sql
     COMMAND ${CMAKE_COMMAND} -E copy_if_different security_.fdb security.fdb
@@ -168,8 +175,7 @@ add_custom_command(
     #
     COMMAND ${CMAKE_COMMAND} -E remove metadata.fdb
     COMMAND ${CMAKE_COMMAND} -E remove metadata_.fdb
-    COMMAND ${CMAKE_COMMAND} -E echo "create database 'metadata_.fdb' user 'SYSDBA' password 'masterkey';" > create_db_metadata.sql
-    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i create_db_metadata.sql
+    COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_isql> -q -i ${create_db_metadata_sql}
     COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -sql_dialect 1 metadata_.fdb
     COMMAND ${BOOT_ENV} $<TARGET_FILE:boot_gfix> -user SYSDBA -password masterkey -mode read_only metadata_.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different metadata_.fdb metadata.fdb
@@ -211,7 +217,7 @@ add_custom_command(
         msg_fdb
     COMMENT ""
     #
-    COMMAND ${CMAKE_COMMAND} -E echo "" > codes_headers.dummy
+    COMMAND ${CMAKE_COMMAND} -E touch codes_headers.dummy
     COMMAND ${CMAKE_COMMAND} -E echo Building codes header...
     COMMAND ${BOOT_ENV} $<TARGET_FILE:codes> ${CMAKE_CURRENT_SOURCE_DIR}/include/gen ${CMAKE_SOURCE_DIR}/lang_helpers
 )
