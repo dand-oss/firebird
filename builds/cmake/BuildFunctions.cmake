@@ -95,7 +95,11 @@ function(epp_process type files gpre_target)
 
     # Build environment command for boot tools
     set(ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}")
-    if (UNIX)
+    if (WIN32)
+        # Windows: DLLs found via PATH
+        set(ENV_CMD ${ENV_CMD} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
+    else()
+        # Unix: shared libs found via LD_LIBRARY_PATH
         set(ENV_CMD ${ENV_CMD} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
     endif()
 
