@@ -99,8 +99,8 @@ function(epp_process type files gpre_target)
         # Windows: DLLs found via PATH
         set(ENV_CMD ${ENV_CMD} "PATH=${boot_dir}/bin\;${boot_dir}\;$ENV{PATH}")
     else()
-        # Unix: shared libs found via LD_LIBRARY_PATH
-        set(ENV_CMD ${ENV_CMD} "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
+        # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
+        set(ENV_CMD ${ENV_CMD} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}/bin")
     endif()
 
     foreach(F ${${files}})
