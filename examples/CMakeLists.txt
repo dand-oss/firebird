@@ -12,6 +12,12 @@ include(SourceGroups)
 
 if (NOT CMAKE_CROSSCOMPILING)
 
+# Environment for master tools (isql, gpre, etc.) - uses output_dir
+set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}")
+if (UNIX)
+    set(MASTER_ENV ${MASTER_ENV} "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}/bin")
+endif()
+
 # Create security5.fdb and firebird.conf in output_dir for embedded ISQL access
 # security.fdb is created in boot_dir (includes $<CONFIG> for multi-config generators)
 add_custom_command(
@@ -31,14 +37,14 @@ add_custom_command(
 add_custom_command(
     OUTPUT empbuild.fdb
     DEPENDS
-        isql
-        engine
+        $<TARGET_FILE:isql>
+        $<TARGET_FILE:engine>
         ${output_dir}/firebird.msg
         ${output_dir}/security5.fdb
         ${output_dir}/firebird.conf
         ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
     COMMAND ${CMAKE_COMMAND} -E remove empbuild.fdb
-    COMMAND ${ISQL_CMD} -q -i ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
+    COMMAND ${MASTER_ENV} $<TARGET_FILE:isql> -q -i ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbld.sql
     COMMAND ${CMAKE_COMMAND} -E copy_if_different empbuild.fdb empbuild_.fdb
     COMMAND ${CMAKE_COMMAND} -E remove empbuild.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different empbuild_.fdb empbuild.fdb
@@ -46,11 +52,12 @@ add_custom_command(
 add_custom_command(
     OUTPUT empbuild.cpp
     DEPENDS
-        gpre
+        $<TARGET_FILE:gpre>
+        $<TARGET_FILE:engine>
         ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbuild.epp
         empbuild.fdb
     COMMENT "Calling GPRE for empbuild.epp"
-    COMMAND ${GPRE_CMD} -r -m -n ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbuild.epp empbuild.cpp
+    COMMAND ${MASTER_ENV} $<TARGET_FILE:gpre> -r -m -n ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbuild.epp empbuild.cpp
 )
 
 add_executable          (empbuild empbuild.cpp empbuild.fdb ${CMAKE_CURRENT_SOURCE_DIR}/empbuild/empbuild.epp)
@@ -77,12 +84,13 @@ endforeach()
 add_custom_command(
     OUTPUT employe2.fdb
     DEPENDS
-        empbuild
-        gfix
+        $<TARGET_FILE:empbuild>
+        $<TARGET_FILE:gfix>
+        $<TARGET_FILE:engine>
         ${files}
     COMMAND ${CMAKE_COMMAND} -E remove employe2.fdb
     COMMAND ${CMAKE_COMMAND} -E remove employe2_.fdb
-    COMMAND ${EMPBUILD_CMD} employe2_.fdb
+    COMMAND ${MASTER_ENV} $<TARGET_FILE:empbuild> employe2_.fdb
     COMMAND ${CMAKE_COMMAND} -E copy_if_different employe2_.fdb employe2.fdb
 )
 add_custom_target       (employee_db ALL DEPENDS employe2.fdb SOURCES ${files})
