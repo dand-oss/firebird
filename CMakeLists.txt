@@ -528,7 +528,8 @@ endif()
 # subdirectories
 ########################################
 
-if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+option(FIREBIRD_BUILD_EXAMPLES "Build example programs and databases" ON)
+if (FIREBIRD_BUILD_EXAMPLES AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
     add_subdirectory("examples")
 endif()
 add_subdirectory("src")
