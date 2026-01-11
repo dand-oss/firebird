@@ -417,12 +417,7 @@ endif()
 
 include(BuildFunctions)
 
-if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
-
-create_boot_commands()
-create_master_commands()
-
-endif() # if (NOT CMAKE_CROSSCOMPILING AND NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT")
+# Boot/master commands now use cmake -E env directly in add_custom_command
 
 crosscompile_prebuild_steps()
 
