@@ -207,11 +207,14 @@ add_custom_command(
     DEPENDS
         build_msg
         msg_fdb
+        $<TARGET_FILE:yvalve>
     #
     COMMAND ${CMAKE_COMMAND} -E remove firebird.msg
     COMMAND ${BOOT_ENV} $<TARGET_FILE:build_msg> -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg -L all
     COMMAND ${BOOT_ENV} $<TARGET_FILE:build_msg> -D msg.fdb -P ${CMAKE_CURRENT_BINARY_DIR}/ -F firebird.msg
     COMMAND ${CMAKE_COMMAND} -E copy_if_different firebird.msg ${output_dir}/firebird.msg
+    # Also copy to yvalve's directory for VS builds where paths differ
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different firebird.msg $<TARGET_FILE_DIR:yvalve>/firebird.msg
 )
 add_custom_command(
     OUTPUT codes_headers.dummy
@@ -233,10 +236,14 @@ else() # EMBEDDED or CLIENT mode - use pre-built firebird.msg
 # This is needed for isql to display proper error messages when building empbuild.fdb
 add_custom_command(
     OUTPUT ${output_dir}/firebird.msg
-    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg
+    DEPENDS ${CMAKE_SOURCE_DIR}/share/firebird.msg $<TARGET_FILE:yvalve>
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
         ${CMAKE_SOURCE_DIR}/share/firebird.msg
         ${output_dir}/firebird.msg
+    # Also copy to yvalve's directory for VS builds where paths differ
+    COMMAND ${CMAKE_COMMAND} -E copy_if_different
+        ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        $<TARGET_FILE_DIR:yvalve>/firebird.msg
     COMMENT "Copying pre-built firebird.msg to output directory"
 )
 # boot_dir copies are handled at top of this block (before databases)
