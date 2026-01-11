@@ -18,8 +18,8 @@ if (WIN32)
     # Windows: DLLs found via PATH
     set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}\;${output_dir}/bin\;$ENV{PATH}")
 else()
-    # Unix: shared libs found via LD_LIBRARY_PATH
-    set(MASTER_ENV ${MASTER_ENV} "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}/bin")
+    # Unix: shared libs via LD_LIBRARY_PATH, executables via PATH
+    set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}/bin")
 endif()
 
 # Create security5.fdb and firebird.conf in output_dir for embedded ISQL access
