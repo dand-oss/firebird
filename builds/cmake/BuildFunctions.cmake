@@ -91,9 +91,6 @@ function(epp_process type files)
         set(out ${CMAKE_CURRENT_BINARY_DIR}/${F}${epp_suffix})
 
         get_filename_component(dir ${out} PATH)
-        if (MSVC OR XCODE)
-            set(dir ${dir}/$<CONFIG>)
-        endif()
 
         if ("${type}" STREQUAL "boot")
             add_custom_command(
