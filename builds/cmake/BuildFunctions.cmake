@@ -106,13 +106,13 @@ function(epp_process type files)
             set(dir ${dir}/${file}.d)
             add_custom_command(
                 OUTPUT ${out}
-                DEPENDS databases boot_gpre ${in}
+                DEPENDS databases msg_fdb boot_gpre ${in}
                 COMMENT "Calling GPRE master for ${F}"
                 #
                 COMMAND ${CMAKE_COMMAND} -E make_directory ${dir}
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different metadata.fdb ${dir}/yachts.lnk
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different security.fdb ${dir}/security.fdb
-                COMMAND ${CMAKE_COMMAND} -E copy_if_different msg.fdb ${dir}/msg.fdb
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/metadata.fdb ${dir}/yachts.lnk
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/security.fdb ${dir}/security.fdb
+                COMMAND ${CMAKE_COMMAND} -E copy_if_different ${boot_dir}/msg.fdb ${dir}/msg.fdb
                 COMMAND ${ARGN} -b ${dir}/ ${in} ${out}
             )
         endif()
