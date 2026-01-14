@@ -12,6 +12,12 @@ include(SourceGroups)
 
 if (NOT CMAKE_CROSSCOMPILING)
 
+# Skip empbuild for Debug on Windows - DLL loading issues with ASAN
+string(TOUPPER "${CMAKE_BUILD_TYPE}" _BUILD_TYPE_UPPER)
+if (WIN32 AND _BUILD_TYPE_UPPER STREQUAL "DEBUG")
+    message(STATUS "Skipping empbuild for Windows Debug build (CMAKE_BUILD_TYPE=${CMAKE_BUILD_TYPE})")
+else()
+
 # Environment for master tools (isql, gpre, etc.)
 # Use $<TARGET_FILE_DIR:yvalve> to get actual output location (handles VS directory structure)
 if (WIN32)
@@ -128,6 +134,8 @@ add_custom_command(
 )
 add_custom_target       (employee_db ALL DEPENDS employe2.fdb SOURCES ${files})
 project_group           (employee_db "Examples/Custom build steps")
+
+endif() # if (NOT WIN32 Debug)
 
 endif() # if (NOT CMAKE_CROSSCOMPILING)
 
