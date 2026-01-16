@@ -692,17 +692,9 @@ project_group(fbembed2 "Libraries")
 
 # Install embedded library with export for CMake find_package support
 install(TARGETS fbembed2
-    EXPORT Firebird2EmbedTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
-)
-
-# Export embedded targets separately (different library, same API)
-install(EXPORT Firebird2EmbedTargets
-    FILE Firebird2EmbedTargets.cmake
-    NAMESPACE Firebird2::
-    DESTINATION lib/cmake/Firebird2
 )
 
 endif() # FIREBIRD_BUILD_FBEMBED
