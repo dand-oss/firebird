@@ -648,10 +648,11 @@ set(FBEMBED_SRC
     ${AUTH_SRC}
 )
 
-add_library(fbembed2 SHARED ${FBEMBED_SRC})
+add_library(fbembed2 STATIC ${FBEMBED_SRC})
 
 # Define EMBEDDED to disable features requiring security database
 target_compile_definitions(fbembed2 PRIVATE EMBEDDED)
+target_compile_options(fbembed2 PRIVATE -fPIC)
 
 # Optional: Use system malloc for debugging with ASAN/Valgrind
 if(USE_SYSTEM_MALLOC)
@@ -672,8 +673,6 @@ target_link_libraries(fbembed2
 
 set_target_properties(fbembed2 PROPERTIES
     OUTPUT_NAME fbembed2
-    VERSION ${FIREBIRD_VERSION}
-    SOVERSION ${FIREBIRD_VERSION_MAJOR}
 )
 
 # Add interface include directories for downstream consumers (same API as fbclient)
