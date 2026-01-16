@@ -34,7 +34,7 @@
 #	_gds__alloc_debug
 #	_gds__vax_integer
 #	_gds__register_cleanup
-#	_gds__get_prefix
+#	_fb2_gds__get_prefix
 #	_gds__msg_lookup
 #	_gds__thread_start
 #	_utf8_nextCharSafeBody_3_0

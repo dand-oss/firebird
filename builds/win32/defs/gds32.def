@@ -250,7 +250,7 @@ EXPORTS
     BLOB_text_dump=fbclient.BLOB_text_dump @242
     BLOB_text_load=fbclient.BLOB_text_load @243
     isc_modify_dpb=fbclient.isc_modify_dpb @244
-    gds__get_prefix=fbclient.gds__get_prefix @248
+    fb2_gds__get_prefix=fbclient.fb2_gds__get_prefix @248
     gds__prefix_lock=fbclient.gds__prefix_lock @249
     gds__prefix_msg=fbclient.gds__prefix_msg @250
     gds__validate_lib_path=fbclient.gds__validate_lib_path @255

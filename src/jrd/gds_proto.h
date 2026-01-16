@@ -102,7 +102,7 @@ void	API_ROUTINE gds__prefix(TEXT*, const TEXT*);
 void	API_ROUTINE gds__prefix_lock(TEXT*, const TEXT*);
 void	API_ROUTINE gds__prefix_msg(TEXT*, const TEXT*);
 
-SLONG	API_ROUTINE gds__get_prefix(SSHORT, const TEXT*);
+SLONG	API_ROUTINE fb2_gds__get_prefix(SSHORT, const TEXT*);
 ISC_STATUS	API_ROUTINE gds__print_status(const ISC_STATUS*);
 USHORT	API_ROUTINE gds__parse_bpb(USHORT, const UCHAR*, USHORT*, USHORT*);
 USHORT	API_ROUTINE gds__parse_bpb2(USHORT, const UCHAR*, SSHORT*, SSHORT*,

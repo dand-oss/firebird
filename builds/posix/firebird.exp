@@ -61,7 +61,7 @@
 	gds__fetch
 	gds__free
 	gds__ftof
-	gds__get_prefix
+	fb2_gds__get_prefix
 	gds__get_segment
 	gds__get_slice
 	gds__interprete

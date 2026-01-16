@@ -1661,7 +1661,7 @@ void API_ROUTINE gds__msg_put(void* handle,
 }
 
 
-SLONG API_ROUTINE gds__get_prefix(SSHORT arg_type, const TEXT* passed_string)
+SLONG API_ROUTINE fb2_gds__get_prefix(SSHORT arg_type, const TEXT* passed_string)
 {
 /**************************************
  *

@@ -459,9 +459,9 @@ inline void setPrefixIfNotEmpty(const Firebird::PathName& prefix, SSHORT arg_typ
  **************************************/
 	if (prefix.hasData())
 	{
-		// ignore here return value of gds__get_prefix():
+		// ignore here return value of fb2_gds__get_prefix():
 		// it will never fail with our good arguments
-		gds__get_prefix(arg_type, prefix.c_str());
+		fb2_gds__get_prefix(arg_type, prefix.c_str());
 	}
 }
 
@@ -479,8 +479,8 @@ SLONG ISC_set_prefix(const TEXT* sw, const TEXT* path)
  **************************************/
 
 	/*
-	 * We can't call gds__get_prefix() at once when switch is found.
-	 * gds__get_prefix() invokes GDS_init_prefix(), which in turn causes
+	 * We can't call fb2_gds__get_prefix() at once when switch is found.
+	 * fb2_gds__get_prefix() invokes GDS_init_prefix(), which in turn causes
 	 * config file to be loaded. And in case when -el or -em is given
 	 * before -e, this leads to use of wrong firebird.conf.
 	 * To avoid it accumulate values for switches locally,

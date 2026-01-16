@@ -59,7 +59,7 @@ EXPORTS
 	gds__fetch	@36
 	gds__free	@37
 	gds__ftof	@38
-	gds__get_prefix	@248
+	fb2_gds__get_prefix	@248
 	gds__get_segment	@39
 	gds__get_slice	@40
 	gds__interprete	@41
