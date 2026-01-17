@@ -473,8 +473,8 @@ public:
 	    if (block)
 		{
 #ifdef USE_SYSTEM_MALLOC
-			// Pure free - no header, for ASan compatibility
-			free(block);
+			// Use ::operator delete to match ::operator new for ASAN compatibility
+			::operator delete(block);
 #else
 			((MemoryBlock*) ((char*) block - MEM_ALIGN(sizeof(MemoryBlock))))->mbk_pool->deallocate(block);
 #endif
@@ -546,7 +546,9 @@ using Firebird::MemoryPool;
 inline static MemoryPool* getDefaultMemoryPool() { return Firebird::MemoryPool::processMemoryPool; }
 
 // operators new and delete
-// In USE_SYSTEM_MALLOC mode, do NOT override global operators - use system allocators
+// In USE_SYSTEM_MALLOC mode, do NOT declare/override global operators.
+// This avoids ASAN alloc-dealloc-mismatch when Firebird is a shared library.
+// Run with ASAN_OPTIONS=alloc_dealloc_mismatch=0 to suppress warnings.
 #ifndef USE_SYSTEM_MALLOC
 void* operator new(size_t s) THROW_BAD_ALLOC;
 void* operator new[](size_t s) THROW_BAD_ALLOC;
@@ -558,7 +560,7 @@ void operator delete[](void* mem) throw();
 inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
 #ifdef USE_SYSTEM_MALLOC
-	// Use standard new so it matches delete for ASan compatibility
+	// Use ::operator new to match standard delete for ASAN compatibility
 	(void)pool;  // unused when bypassing pool
 	return ::operator new(s);
 #else
@@ -568,7 +570,7 @@ inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THR
 inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
 #ifdef USE_SYSTEM_MALLOC
-	// Use standard new[] so it matches delete[] for ASan compatibility
+	// Use ::operator new[] to match standard delete[] for ASAN compatibility
 	(void)pool;  // unused when bypassing pool
 	return ::operator new[](s);
 #else

@@ -29,7 +29,12 @@
 //  PLEASE, DO NOT CONSTIFY THIS MODULE !!!
 
 #include "firebird.h"
+#include <new>  // for std::nothrow
+#include <cstdio>  // for fprintf
 #include "../common/classes/alloc.h"
+
+// Add distinctive marker to trace if this code is being executed
+#define ALLOC_LOG(fmt, ...) fprintf(stderr, "[FB2_TRACE_V2] " fmt "\n", ##__VA_ARGS__)
 #include "../common/classes/fb_tls.h"
 #include "../jrd/gdsassert.h"
 #ifdef HAVE_MMAP
@@ -171,8 +176,9 @@ void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
 	if (size == 0)
 		size = 1;
 
-	// Pure malloc - no header wrapping, for ASan compatibility
-	void* mem = malloc(size);
+	// Use ::operator new to match standard delete for ASAN compatibility
+	void* mem = ::operator new(size, std::nothrow);
+	ALLOC_LOG("pool.allocate(%zu) = %p [::new]", size, mem);
 	if (mem)
 		increment_usage(size);
 	return mem;
@@ -198,9 +204,9 @@ void MemoryPool::deallocate(void* block)
 	if (!block)
 		return;
 
-	// Pure free - no header, for ASan compatibility
-	// Note: we can't track size decrement without the header
-	free(block);
+	ALLOC_LOG("pool.deallocate(%p) [::delete]", block);
+	// Use ::operator delete to match ::operator new for ASAN compatibility
+	::operator delete(block);
 }
 
 void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
@@ -285,9 +291,16 @@ void AutoStorage::ProbeStack() const
 } // namespace Firebird
 
 // In USE_SYSTEM_MALLOC mode, do NOT override global operator new/delete.
-// This allows ASAN and other sanitizers to work correctly by using the
-// standard system allocators. The pool-specific operators (with MemoryPool&
-// parameter) in the header still work and delegate to system allocators.
+// Overriding them in a shared library causes ASAN mismatches because other
+// libraries (compiled before this) use ASAN's operators while Firebird's
+// operators would use malloc/free. The mismatch is unavoidable when Firebird
+// is loaded as a .so in a program with ASAN.
+//
+// To suppress ASAN warnings for internal Firebird allocations, run with:
+//   ASAN_OPTIONS=alloc_dealloc_mismatch=0
+//
+// The pool.allocate()/deallocate() functions still use malloc/free for
+// consistency within Firebird's internal memory management.
 
 #else // USE_SYSTEM_MALLOC
 //=============================================================================
