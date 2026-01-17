@@ -171,19 +171,11 @@ void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
 	if (size == 0)
 		size = 1;
 
-	MemoryBlock* blk = (MemoryBlock*)malloc(sizeof(MemoryBlock) + size);
-	if (!blk)
-		return NULL;
-
-	blk->mbk_pool = this;
-	blk->mbk_size = size;
-#ifdef DEBUG_GDS_ALLOC
-	blk->mbk_file = file;
-	blk->mbk_line = line;
-#endif
-
-	increment_usage(size);
-	return (char*)blk + sizeof(MemoryBlock);
+	// Pure malloc - no header wrapping, for ASan compatibility
+	void* mem = malloc(size);
+	if (mem)
+		increment_usage(size);
+	return mem;
 }
 
 void* MemoryPool::allocate(size_t size
@@ -206,11 +198,9 @@ void MemoryPool::deallocate(void* block)
 	if (!block)
 		return;
 
-	MemoryBlock* blk = (MemoryBlock*)((char*)block - sizeof(MemoryBlock));
-	fb_assert(blk->mbk_pool == this);
-
-	decrement_usage(blk->mbk_size);
-	free(blk);
+	// Pure free - no header, for ASan compatibility
+	// Note: we can't track size decrement without the header
+	free(block);
 }
 
 void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
@@ -294,23 +284,10 @@ void AutoStorage::ProbeStack() const
 
 } // namespace Firebird
 
-void* operator new(size_t s) THROW_BAD_ALLOC
-{
-	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
-}
-void* operator new[](size_t s) THROW_BAD_ALLOC
-{
-	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
-}
-
-void operator delete(void* mem) throw()
-{
-	Firebird::MemoryPool::globalFree(mem);
-}
-void operator delete[](void* mem) throw()
-{
-	Firebird::MemoryPool::globalFree(mem);
-}
+// In USE_SYSTEM_MALLOC mode, do NOT override global operator new/delete.
+// This allows ASAN and other sanitizers to work correctly by using the
+// standard system allocators. The pool-specific operators (with MemoryPool&
+// parameter) in the header still work and delegate to system allocators.
 
 #else // USE_SYSTEM_MALLOC
 //=============================================================================

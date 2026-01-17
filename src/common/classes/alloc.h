@@ -473,7 +473,8 @@ public:
 	    if (block)
 		{
 #ifdef USE_SYSTEM_MALLOC
-			((MemoryBlock*) ((char*) block - sizeof(MemoryBlock)))->mbk_pool->deallocate(block);
+			// Pure free - no header, for ASan compatibility
+			free(block);
 #else
 			((MemoryBlock*) ((char*) block - MEM_ALIGN(sizeof(MemoryBlock))))->mbk_pool->deallocate(block);
 #endif
@@ -545,29 +546,53 @@ using Firebird::MemoryPool;
 inline static MemoryPool* getDefaultMemoryPool() { return Firebird::MemoryPool::processMemoryPool; }
 
 // operators new and delete
-
+// In USE_SYSTEM_MALLOC mode, do NOT override global operators - use system allocators
+#ifndef USE_SYSTEM_MALLOC
 void* operator new(size_t s) THROW_BAD_ALLOC;
 void* operator new[](size_t s) THROW_BAD_ALLOC;
 
 void operator delete(void* mem) throw();
 void operator delete[](void* mem) throw();
+#endif
 
 inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
+#ifdef USE_SYSTEM_MALLOC
+	// Use standard new so it matches delete for ASan compatibility
+	(void)pool;  // unused when bypassing pool
+	return ::operator new(s);
+#else
 	return pool.allocate(s ALLOC_PASS_ARGS);
+#endif
 }
 inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
+#ifdef USE_SYSTEM_MALLOC
+	// Use standard new[] so it matches delete[] for ASan compatibility
+	(void)pool;  // unused when bypassing pool
+	return ::operator new[](s);
+#else
 	return pool.allocate(s ALLOC_PASS_ARGS);
+#endif
 }
 
 inline void operator delete(void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
+#ifdef USE_SYSTEM_MALLOC
+	(void)pool;  // unused when bypassing pool
+	::operator delete(mem);
+#else
 	MemoryPool::globalFree(mem);
+#endif
 }
 inline void operator delete[](void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
+#ifdef USE_SYSTEM_MALLOC
+	(void)pool;  // unused when bypassing pool
+	::operator delete[](mem);
+#else
 	MemoryPool::globalFree(mem);
+#endif
 }
 
 #ifdef DEBUG_GDS_ALLOC

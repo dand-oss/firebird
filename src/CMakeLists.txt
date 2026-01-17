@@ -673,6 +673,8 @@ target_link_libraries(fbembed2
 
 set_target_properties(fbembed2 PROPERTIES
     OUTPUT_NAME fbembed2
+    CXX_VISIBILITY_PRESET hidden
+    VISIBILITY_INLINES_HIDDEN ON
 )
 
 # Add interface include directories for downstream consumers (same API as fbclient)
