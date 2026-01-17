@@ -33,13 +33,14 @@
 #include "../../jrd/intl_classes.h"
 #include "../../jrd/TextType.h"
 #include "../../jrd/unicode_util.h"
+#include "../../jrd/CharSet.h"
 
 class UnicodeCollationHolder
 {
 private:
 	charset *cs;
 	texttype *tt;
-	Firebird::AutoPtr<Jrd::CharSet> charSet;
+	Firebird::AutoPtr<Jrd::CharSet, Jrd::CharSet::PoolDelete> charSet;
 	Firebird::AutoPtr<Jrd::TextType> textType;
 
 public:

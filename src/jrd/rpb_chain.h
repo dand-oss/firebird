@@ -27,6 +27,7 @@
 #include <string.h>
 
 #include "../common/classes/array.h"
+#include "../common/classes/alloc.h"
 #include "../jrd/jrd.h"
 #include "../jrd/req.h"
 
@@ -63,7 +64,8 @@ public:
 typedef Firebird::SortedArray<traRpbListElement,
 	Firebird::InlineStorage<traRpbListElement, 16>, traRpbListElement,
 	traRpbListElement, traRpbListElement> traRpbArray;
-class traRpbList : public traRpbArray
+// traRpbList inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class traRpbList : public traRpbArray, public Firebird::GlobalStorage
 {
 public:
 	explicit traRpbList(Firebird::MemoryPool& p)

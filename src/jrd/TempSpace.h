@@ -30,7 +30,7 @@
 #include "../common/config/dir_list.h"
 #include "../common/classes/init.h"
 
-class TempSpace : public Firebird::File
+class TempSpace : public Firebird::File, public Firebird::GlobalStorage
 {
 public:
 	TempSpace(MemoryPool& pool, const Firebird::PathName& prefix, bool dynamic = true);
@@ -68,7 +68,8 @@ public:
 private:
 
 	// Generic space block
-	class Block
+	// Block inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+	class Block : public Firebird::GlobalStorage
 	{
 	public:
 		Block(Block* tail, size_t length)

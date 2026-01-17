@@ -29,7 +29,12 @@
 //  PLEASE, DO NOT CONSTIFY THIS MODULE !!!
 
 #include "firebird.h"
+#include <new>  // for std::nothrow
+#include <cstdio>  // for fprintf
 #include "../common/classes/alloc.h"
+
+// Add distinctive marker to trace if this code is being executed
+#define ALLOC_LOG(fmt, ...) fprintf(stderr, "[FB2_TRACE_V2] " fmt "\n", ##__VA_ARGS__)
 #include "../common/classes/fb_tls.h"
 #include "../jrd/gdsassert.h"
 #ifdef HAVE_MMAP
@@ -171,19 +176,12 @@ void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
 	if (size == 0)
 		size = 1;
 
-	MemoryBlock* blk = (MemoryBlock*)malloc(sizeof(MemoryBlock) + size);
-	if (!blk)
-		return NULL;
-
-	blk->mbk_pool = this;
-	blk->mbk_size = size;
-#ifdef DEBUG_GDS_ALLOC
-	blk->mbk_file = file;
-	blk->mbk_line = line;
-#endif
-
-	increment_usage(size);
-	return (char*)blk + sizeof(MemoryBlock);
+	// Use malloc to match direct free() calls in Firebird code (ASAN compatibility)
+	void* mem = malloc(size);
+	ALLOC_LOG("pool.allocate(%zu) = %p [malloc]", size, mem);
+	if (mem)
+		increment_usage(size);
+	return mem;
 }
 
 void* MemoryPool::allocate(size_t size
@@ -206,11 +204,9 @@ void MemoryPool::deallocate(void* block)
 	if (!block)
 		return;
 
-	MemoryBlock* blk = (MemoryBlock*)((char*)block - sizeof(MemoryBlock));
-	fb_assert(blk->mbk_pool == this);
-
-	decrement_usage(blk->mbk_size);
-	free(blk);
+	ALLOC_LOG("pool.deallocate(%p) [free]", block);
+	// Use free() to match malloc() allocation
+	free(block);
 }
 
 void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
@@ -294,23 +290,17 @@ void AutoStorage::ProbeStack() const
 
 } // namespace Firebird
 
-void* operator new(size_t s) THROW_BAD_ALLOC
-{
-	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
-}
-void* operator new[](size_t s) THROW_BAD_ALLOC
-{
-	return Firebird::MemoryPool::globalAlloc(s ALLOC_ARGS);
-}
-
-void operator delete(void* mem) throw()
-{
-	Firebird::MemoryPool::globalFree(mem);
-}
-void operator delete[](void* mem) throw()
-{
-	Firebird::MemoryPool::globalFree(mem);
-}
+// In USE_SYSTEM_MALLOC mode, do NOT override global operator new/delete.
+// Overriding them in a shared library causes ASAN mismatches because other
+// libraries (compiled before this) use ASAN's operators while Firebird's
+// operators would use malloc/free. The mismatch is unavoidable when Firebird
+// is loaded as a .so in a program with ASAN.
+//
+// To suppress ASAN warnings for internal Firebird allocations, run with:
+//   ASAN_OPTIONS=alloc_dealloc_mismatch=0
+//
+// The pool.allocate()/deallocate() functions still use malloc/free for
+// consistency within Firebird's internal memory management.
 
 #else // USE_SYSTEM_MALLOC
 //=============================================================================

@@ -909,11 +909,11 @@ void Collation::destroy()
 	if (tt->texttype_fn_destroy)
 		tt->texttype_fn_destroy(tt);
 
-	delete tt;
+	FB_DELETE(tt);
 
 	release();
 
-	delete existenceLock;
+	FB_DELETE(existenceLock);
 	existenceLock = NULL;
 }
 

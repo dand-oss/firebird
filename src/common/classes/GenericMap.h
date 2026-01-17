@@ -153,7 +153,7 @@ public:
 			while (true) {
 				KeyValuePair* temp = treeAccessor.current();
 				bool haveMore = treeAccessor.fastRemove();
-				delete temp;
+				FB_DELETE(temp);
 				if (!haveMore)
 					break;
 			}
@@ -170,7 +170,7 @@ public:
 		if (treeAccessor.locate(key)) {
 			KeyValuePair* var = treeAccessor.current();
 			treeAccessor.fastRemove();
-			delete var;
+			FB_DELETE(var);
 			mCount--;
 			return true;
 		}

@@ -54,18 +54,19 @@ struct BitmapTypes_64
 
 #define BUNCH_ONE  ((BUNCH_T) 1)
 
+// SparseBitmap inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
 template <typename T, typename InternalTypes = BitmapTypes_64>
-class SparseBitmap : public AutoStorage
+class SparseBitmap : public AutoStorage, public GlobalStorage
 {
 public:
 	// Default constructor, stack placement
 	SparseBitmap() :
-		singular(false), singular_value(0), tree(&getPool()), defaultAccessor(this)
+		singular(false), singular_value(0), tree(&AutoStorage::getPool()), defaultAccessor(this)
 	{ }
 
 	// Pooled constructor
 	explicit SparseBitmap(MemoryPool& p) :
-		AutoStorage(p), singular(false), singular_value(0), tree(&getPool()), defaultAccessor(this)
+		AutoStorage(p), singular(false), singular_value(0), tree(&AutoStorage::getPool()), defaultAccessor(this)
 	{ }
 
 	// Default accessor methods

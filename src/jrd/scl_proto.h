@@ -39,7 +39,7 @@ Jrd::SecurityClass* SCL_get_class(Jrd::thread_db*, const TEXT*);
 Jrd::SecurityClass::flags_t SCL_get_mask(Jrd::thread_db* tdbb, const TEXT*, const TEXT*);
 void SCL_init(Jrd::thread_db* tdbb, bool, const Jrd::UserId& tempId);
 Jrd::SecurityClass* SCL_recompute_class(Jrd::thread_db*, const TEXT*);
-void SCL_release_all(Jrd::SecurityClassList*&);
+void SCL_release_all(Jrd::SecurityClassList*&, Firebird::MemoryPool&);
 
 namespace Jrd {
 typedef Firebird::Array<UCHAR> Acl;

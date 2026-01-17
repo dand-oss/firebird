@@ -118,7 +118,7 @@ private:
 public:
 	void dtor()
 	{
-		delete instance;
+		FB_DELETE(instance);
 		instance = 0;
 	}
 

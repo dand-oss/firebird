@@ -5539,14 +5539,14 @@ static void release_attachment(thread_db* tdbb, Attachment* attachment)
 
 	// Release any validation error vector allocated
 
-	delete attachment->att_val_errors;
+	FB_DELETE(attachment->att_val_errors);
 	attachment->att_val_errors = NULL;
 
-	delete attachment->att_compatibility_table;
+	FB_DELETE(attachment->att_compatibility_table);
 
-	SCL_release_all(attachment->att_security_classes);
+	SCL_release_all(attachment->att_security_classes, *attachment->att_pool);
 
-	delete attachment->att_user;
+	FB_DELETE(attachment->att_user);
 
 	// remove the attachment block from the dbb linked list
 
@@ -5608,7 +5608,14 @@ void Attachment::destroy(Attachment* const attachment)
 		Firebird::MemoryStats temp_stats;
 		pool->setStatsGroup(temp_stats);
 
+#ifdef USE_SYSTEM_MALLOC
+		// In ASAN builds, explicitly call destructor and free() to avoid
+		// alloc-dealloc-mismatch (malloc in FB_NEW vs operator delete)
+		attachment->~Attachment();
+		free(attachment);
+#else
 		delete attachment;
+#endif
 
 		dbb->deletePool(pool);
 	}
@@ -5706,7 +5713,7 @@ Attachment::Attachment(MemoryPool* pool, Database* dbb)
 
 Attachment::~Attachment()
 {
-	delete att_trace_manager;
+	FB_DELETE(att_trace_manager);
 
 	if (att_fini_sec_db)
 	{

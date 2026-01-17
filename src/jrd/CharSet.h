@@ -31,6 +31,7 @@
 #define JRD_CHARSET_H
 
 #include "CsConvert.h"
+#include "constants.h"
 
 namespace Jrd {
 
@@ -45,6 +46,23 @@ public:
 			if (cs->charset_fn_destroy)
 				cs->charset_fn_destroy(cs);
 			delete cs;
+		}
+	};
+
+	// Deleter for CharSet* allocated with FB_NEW(pool)
+	class PoolDelete
+	{
+	public:
+		static void clear(CharSet* cs)
+		{
+			if (cs) {
+#ifdef USE_SYSTEM_MALLOC
+				cs->~CharSet();
+				free(cs);
+#else
+				delete cs;
+#endif
+			}
 		}
 	};
 

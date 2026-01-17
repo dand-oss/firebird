@@ -26,14 +26,15 @@
 
 #include "../common/classes/MetaName.h"
 #include "../common/classes/tree.h"
+#include "../common/classes/alloc.h"
 
 namespace Jrd {
 
 const size_t ACL_BLOB_BUFFER_SIZE = MAX_USHORT; /* used to read/write acl blob */
 
 // Security class definition
-
-class SecurityClass
+// SecurityClass inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class SecurityClass : public Firebird::GlobalStorage
 {
 public:
 	typedef USHORT flags_t;

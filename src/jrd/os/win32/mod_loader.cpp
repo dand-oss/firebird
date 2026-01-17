@@ -201,7 +201,7 @@ ModuleLoader::Module *ModuleLoader::loadModule(const Firebird::PathName& modPath
 	if (!module)
 		return 0;
 
-	return FB_NEW(*getDefaultMemoryPool()) Win32Module(module);
+	return new Win32Module(module);
 }
 
 Win32Module::~Win32Module()

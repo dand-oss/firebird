@@ -111,7 +111,8 @@ enum segmentScanType {
 	segmentScanStarting
 };
 
-class IndexScratchSegment
+// IndexScratchSegment inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class IndexScratchSegment : public Firebird::GlobalStorage
 {
 public:
 	explicit IndexScratchSegment(MemoryPool& p);
@@ -128,7 +129,8 @@ public:
 	Firebird::Array<jrd_nod*> matches;
 };
 
-class IndexScratch
+// IndexScratch inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class IndexScratch : public Firebird::GlobalStorage
 {
 public:
 	IndexScratch(MemoryPool& p, thread_db* tdbb, index_desc* idx, CompilerScratch::csb_repeat* csb_tail);
@@ -150,7 +152,8 @@ public:
 
 typedef Firebird::SortedArray<int> SortedStreamList;
 
-class InversionCandidate
+// InversionCandidate inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class InversionCandidate : public Firebird::GlobalStorage
 {
 public:
 	explicit InversionCandidate(MemoryPool& p);
@@ -174,7 +177,8 @@ public:
 typedef Firebird::HalfStaticArray<InversionCandidate*, 16> InversionCandidateList;
 typedef Firebird::ObjectsArray<IndexScratch> IndexScratchList;
 
-class OptimizerRetrieval
+// OptimizerRetrieval inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class OptimizerRetrieval : public Firebird::GlobalStorage
 {
 public:
 	OptimizerRetrieval(MemoryPool& p, OptimizerBlk* opt, SSHORT streamNumber,
@@ -229,7 +233,8 @@ private:
 	bool setConjunctionsMatched;
 };
 
-class IndexRelationship
+// IndexRelationship inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class IndexRelationship : public Firebird::GlobalStorage
 {
 public:
 	IndexRelationship();
@@ -242,7 +247,8 @@ public:
 
 typedef Firebird::Array<IndexRelationship*> IndexedRelationships;
 
-class InnerJoinStreamInfo
+// InnerJoinStreamInfo inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class InnerJoinStreamInfo : public Firebird::GlobalStorage
 {
 public:
 	explicit InnerJoinStreamInfo(MemoryPool& p);
@@ -261,7 +267,8 @@ public:
 
 typedef Firebird::HalfStaticArray<InnerJoinStreamInfo*, 8> StreamInfoList;
 
-class OptimizerInnerJoin
+// OptimizerInnerJoin inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class OptimizerInnerJoin : public Firebird::GlobalStorage
 {
 public:
 	OptimizerInnerJoin(MemoryPool& p, OptimizerBlk* opt, const UCHAR* streams,

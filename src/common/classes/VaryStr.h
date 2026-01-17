@@ -51,7 +51,7 @@ class DynamicVaryStr : public VaryStr<x>
 
 	void clear()
 	{
-		delete[] reinterpret_cast<char*>(buffer);
+		FB_DELETE_ARRAY(reinterpret_cast<char*>(buffer));
 	}
 
 public:

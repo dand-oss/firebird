@@ -33,11 +33,7 @@
 #include "../common/classes/fb_string.h"
 #include "../common/classes/init.h"
 #include "../jrd/intlobj_new.h"
-
-namespace Jrd
-{
-	class CharSet;
-}
+#include "../jrd/CharSet.h"
 
 namespace Firebird {
 
@@ -108,7 +104,7 @@ private:
 
 	public:
 		charset obj;
-		AutoPtr<Jrd::CharSet> charSet;
+		AutoPtr<Jrd::CharSet, Jrd::CharSet::PoolDelete> charSet;
 	};
 
 	static GlobalPtr<Utf8CharSet> utf8CharSet;

@@ -473,7 +473,8 @@ public:
 	    if (block)
 		{
 #ifdef USE_SYSTEM_MALLOC
-			((MemoryBlock*) ((char*) block - sizeof(MemoryBlock)))->mbk_pool->deallocate(block);
+			// Use free() to match malloc() in allocate_nothrow for ASAN compatibility
+			free(block);
 #else
 			((MemoryBlock*) ((char*) block - MEM_ALIGN(sizeof(MemoryBlock))))->mbk_pool->deallocate(block);
 #endif
@@ -545,29 +546,61 @@ using Firebird::MemoryPool;
 inline static MemoryPool* getDefaultMemoryPool() { return Firebird::MemoryPool::processMemoryPool; }
 
 // operators new and delete
-
+// In USE_SYSTEM_MALLOC mode, do NOT declare/override global operators.
+// This avoids ASAN alloc-dealloc-mismatch when Firebird is a shared library.
+// Run with ASAN_OPTIONS=alloc_dealloc_mismatch=0 to suppress warnings.
+#ifndef USE_SYSTEM_MALLOC
 void* operator new(size_t s) THROW_BAD_ALLOC;
 void* operator new[](size_t s) THROW_BAD_ALLOC;
 
 void operator delete(void* mem) throw();
 void operator delete[](void* mem) throw();
+#endif
 
 inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
+#ifdef USE_SYSTEM_MALLOC
+	// Use malloc to match free() calls in Firebird code (ASAN compatibility)
+	(void)pool;  // unused when bypassing pool
+	void* mem = malloc(s);
+	if (!mem)
+		throw std::bad_alloc();
+	return mem;
+#else
 	return pool.allocate(s ALLOC_PASS_ARGS);
+#endif
 }
 inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
+#ifdef USE_SYSTEM_MALLOC
+	// Use malloc to match free() calls in Firebird code (ASAN compatibility)
+	(void)pool;  // unused when bypassing pool
+	void* mem = malloc(s);
+	if (!mem)
+		throw std::bad_alloc();
+	return mem;
+#else
 	return pool.allocate(s ALLOC_PASS_ARGS);
+#endif
 }
 
 inline void operator delete(void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
+#ifdef USE_SYSTEM_MALLOC
+	(void)pool;  // unused when bypassing pool
+	free(mem);
+#else
 	MemoryPool::globalFree(mem);
+#endif
 }
 inline void operator delete[](void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
+#ifdef USE_SYSTEM_MALLOC
+	(void)pool;  // unused when bypassing pool
+	free(mem);
+#else
 	MemoryPool::globalFree(mem);
+#endif
 }
 
 #ifdef DEBUG_GDS_ALLOC
@@ -597,14 +630,37 @@ inline void operator delete[](void* mem ALLOC_PARAMS) throw()
 #define FB_NEW_RPT(pool, count) new(pool, count)
 #endif // DEBUG_GDS_ALLOC
 
+// Deallocation macro for pool-allocated arrays (matches FB_NEW allocation)
+#ifdef USE_SYSTEM_MALLOC
+	#define FB_DELETE_ARRAY(ptr) free(ptr)
+#else
+	#define FB_DELETE_ARRAY(ptr) delete[] (ptr)
+#endif
+
+// Deallocation for pool-allocated single objects (matches FB_NEW allocation)
+#ifdef USE_SYSTEM_MALLOC
+template<typename T>
+inline void fb_delete(T* ptr) {
+	if (ptr) {
+		ptr->~T();
+		free(ptr);
+	}
+}
+#define FB_DELETE(ptr) fb_delete(ptr)
+#else
+#define FB_DELETE(ptr) delete (ptr)
+#endif
+
 
 namespace Firebird
 {
 	// Global storage makes it possible to use new and delete for classes,
 	// based on it, to behave traditionally, i.e. get memory from permanent pool.
+	// Also provides placement new/delete for FB_NEW compatibility with debug tracking.
 	class GlobalStorage
 	{
 	public:
+		// Standard new/delete using default pool
 		void* operator new(size_t size)
 		{
 			return getDefaultMemoryPool()->allocate(size);
@@ -613,6 +669,36 @@ namespace Firebird
 		void operator delete(void* mem)
 		{
 			getDefaultMemoryPool()->deallocate(mem);
+		}
+
+		// Placement new/delete for FB_NEW compatibility (preserves debug tracking)
+#ifdef DEBUG_GDS_ALLOC
+		void* operator new(size_t s, MemoryPool& pool, const char* file, int line)
+		{
+			return pool.allocate(s, file, line);
+		}
+		void operator delete(void* mem, MemoryPool& pool, const char*, int)
+		{
+			pool.deallocate(mem);
+		}
+#else
+		void* operator new(size_t s, MemoryPool& pool)
+		{
+			return pool.allocate(s);
+		}
+		void operator delete(void* mem, MemoryPool& pool)
+		{
+			pool.deallocate(mem);
+		}
+#endif
+
+		// Standard placement new/delete (for placement at a specific memory address)
+		void* operator new(size_t, void* ptr) noexcept
+		{
+			return ptr;
+		}
+		void operator delete(void*, void*) noexcept
+		{
 		}
 
 		MemoryPool& getPool() const

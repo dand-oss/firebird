@@ -845,10 +845,10 @@ BackupManager::BackupManager(thread_db* tdbb, Database* _database, int ini_state
 
 BackupManager::~BackupManager()
 {
-	delete stateLock;
-	delete allocLock;
-	delete alloc_table;
-	delete[] temp_buffers_space;
+	FB_DELETE(stateLock);
+	FB_DELETE(allocLock);
+	FB_DELETE(alloc_table);
+	FB_DELETE_ARRAY(temp_buffers_space);
 }
 
 void BackupManager::setDifference(thread_db* tdbb, const char* filename)

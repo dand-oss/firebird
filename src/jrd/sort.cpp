@@ -637,7 +637,7 @@ void SORT_fini(sort_context* scb)
 
 		delete scb->scb_merge_pool;
 
-		delete scb;
+		scb->scb_owner->getPool().deallocate(scb);
 	}
 }
 

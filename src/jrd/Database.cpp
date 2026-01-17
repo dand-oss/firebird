@@ -184,12 +184,12 @@ namespace Jrd
 
 	Database::~Database()
 	{
-		delete dbb_sys_trans;
+		FB_DELETE(dbb_sys_trans);
 
 		destroyIntlObjects();
 
 		while (dbb_sort_buffers.hasData())
-			delete dbb_sort_buffers.pop();
+			free(dbb_sort_buffers.pop());
 
 		fb_assert(dbb_pools[0] == dbb_permanent);
 		for (size_t i = 1; i < dbb_pools.getCount(); ++i)
@@ -197,8 +197,8 @@ namespace Jrd
 			MemoryPool::deletePool(dbb_pools[i]);
 		}
 
-		delete dbb_monitoring_data;
-		delete dbb_backup_manager;
+		FB_DELETE(dbb_monitoring_data);
+		FB_DELETE(dbb_backup_manager);
 
 		fb_assert(!locked());
 		// This line decrements the usage counter and may cause the destructor to be called.

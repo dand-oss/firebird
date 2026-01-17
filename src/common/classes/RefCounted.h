@@ -26,6 +26,7 @@
 #define COMMON_REF_COUNTED_H
 
 #include "../common/classes/fb_atomic.h"
+#include "../common/classes/alloc.h"
 #include "../jrd/gdsassert.h"
 
 namespace Firebird
@@ -43,7 +44,14 @@ namespace Firebird
 			fb_assert(m_refCnt.value() > 0);
 			const int refCnt = --m_refCnt;
 			if (!refCnt)
+			{
+#ifdef USE_SYSTEM_MALLOC
+				this->~RefCounted();
+				free(this);
+#else
 				delete this;
+#endif
+			}
 			return refCnt;
 		}
 

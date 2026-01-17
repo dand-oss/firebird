@@ -91,7 +91,7 @@ ModuleLoader::Module* ModuleLoader::loadModule(const Firebird::PathName& modPath
 		return 0;
 	}
 
-	return FB_NEW(*getDefaultMemoryPool()) DlfcnModule(*getDefaultMemoryPool(), modPath, module);
+	return new DlfcnModule(*getDefaultMemoryPool(), modPath, module);
 }
 
 

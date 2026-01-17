@@ -26,10 +26,12 @@
 #include "firebird.h"
 #include "../common/classes/fb_string.h"
 #include "../common/classes/File.h"
+#include "../common/classes/alloc.h"
 
 namespace Firebird {
 
-class TempFile : public File
+// TempFile inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+class TempFile : public File, public GlobalStorage
 {
 public:
 	TempFile(MemoryPool& pool, const PathName& prefix, const PathName& directory,

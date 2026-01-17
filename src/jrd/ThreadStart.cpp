@@ -49,6 +49,7 @@
 
 #include "../common/classes/locks.h"
 #include "../common/classes/rwlock.h"
+#include "../common/classes/alloc.h"
 
 
 int API_ROUTINE gds__thread_start(ThreadEntryPoint* entrypoint,
@@ -110,11 +111,11 @@ THREAD_ENTRY_DECLARE threadStart(THREAD_ENTRY_PARAM arg)
 // due to same names of parameters for various ThreadData::start(...),
 // we may use common macro for various platforms
 #define THREAD_ENTRYPOINT threadStart
-#define THREAD_ARG static_cast<THREAD_ENTRY_PARAM> (FB_NEW(*getDefaultMemoryPool()) \
+#define THREAD_ARG static_cast<THREAD_ENTRY_PARAM> (new \
 		ThreadArgs(reinterpret_cast<THREAD_ENTRY_RETURN (THREAD_ENTRY_CALL *) (THREAD_ENTRY_PARAM)>(routine), \
 		static_cast<THREAD_ENTRY_PARAM>(arg)))
 
-class ThreadArgs
+class ThreadArgs : public Firebird::GlobalStorage
 {
 public:
 	typedef THREAD_ENTRY_RETURN (THREAD_ENTRY_CALL *Routine) (THREAD_ENTRY_PARAM);

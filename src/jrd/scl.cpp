@@ -1173,7 +1173,7 @@ SecurityClass* SCL_recompute_class(thread_db* tdbb, const TEXT* string)
 }
 
 
-void SCL_release_all(SecurityClassList*& list)
+void SCL_release_all(SecurityClassList*& list, MemoryPool& pool)
 {
 /**************************************
  *
@@ -1195,7 +1195,8 @@ void SCL_release_all(SecurityClassList*& list)
 		} while (list->getNext());
 	}
 
-	delete list;
+	// Use pool.deallocate() for ASAN compatibility in USE_SYSTEM_MALLOC mode
+	pool.deallocate(list);
 	list = NULL;
 }
 

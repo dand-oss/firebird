@@ -245,7 +245,7 @@ static void getVersions(const string& configInfo, ObjectsArray<string>& versions
 	charset cs;
 	IntlUtil::initAsciiCharset(&cs);
 
-	AutoPtr<CharSet> ascii(Jrd::CharSet::createInstance(*getDefaultMemoryPool(), 0, &cs));
+	AutoPtr<CharSet, CharSet::PoolDelete> ascii(Jrd::CharSet::createInstance(*getDefaultMemoryPool(), 0, &cs));
 
 	IntlUtil::SpecificAttributesMap config;
 	IntlUtil::parseSpecificAttributes(ascii, configInfo.length(),

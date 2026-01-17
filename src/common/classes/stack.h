@@ -29,16 +29,19 @@
 #define CLASSES_STACK_H
 
 #include "../common/classes/vector.h"
+#include "../common/classes/alloc.h"
 
 namespace Firebird {
 
+	// Stack inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
 	template <typename Object, size_t Capacity = 16>
-		class Stack : public AutoStorage
+		class Stack : public AutoStorage, public GlobalStorage
 	{
 	private:
 		Stack<Object, Capacity>(Stack<Object, Capacity>&);	// not implemented
 
-		class Entry : public Vector<Object, Capacity>
+		// Entry inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+		class Entry : public Vector<Object, Capacity>, public GlobalStorage
 		{
 		private:
 			typedef Vector<Object, Capacity> inherited;
@@ -136,8 +139,8 @@ namespace Firebird {
 				stk = stk_cache;
 				stk_cache = 0;
 			}
-			stk = stk ? stk->push(e, getPool())
-					  : FB_NEW(getPool()) Entry(e, 0);
+			stk = stk ? stk->push(e, AutoStorage::getPool())
+					  : FB_NEW(AutoStorage::getPool()) Entry(e, 0);
 		}
 
 		Object pop()
@@ -168,7 +171,7 @@ namespace Firebird {
 	public:
 		void takeOwnership (Stack<Object, Capacity>& s)
 		{
-			fb_assert(&getPool() == &s.getPool());
+			fb_assert(&AutoStorage::getPool() == &s.AutoStorage::getPool());
 			delete stk;
 			stk = s.stk;
 			s.stk = 0;
@@ -418,7 +421,7 @@ namespace Firebird {
 		// This iterator will be used as "bookmark" for Split later.
 		const const_iterator merge(Stack<Object, Capacity>& s)
 		{
-			fb_assert(&getPool() == &s.getPool());
+			fb_assert(&AutoStorage::getPool() == &s.AutoStorage::getPool());
 			const const_iterator rc(s);
 			Entry **e = &stk;
 			while (*e)
@@ -439,7 +442,7 @@ namespace Firebird {
 		// Split stacks at mark
 		void split (const const_iterator& mark, Stack<Object, Capacity>& s)
 		{
-			fb_assert(&getPool() == &s.getPool());
+			fb_assert(&AutoStorage::getPool() == &s.AutoStorage::getPool());
 			fb_assert(!s.stk);
 
 			// if empty stack was merged, there is nothing to do
@@ -467,7 +470,7 @@ namespace Firebird {
 			}
 			else
 			{
-				Entry* newEntry = FB_NEW(getPool()) Entry(0);
+				Entry* newEntry = FB_NEW(AutoStorage::getPool()) Entry(0);
 				(*toSplit)->split(mark.elem, newEntry);
 				s.stk = *toSplit;
 				*toSplit = newEntry;
@@ -575,7 +578,7 @@ namespace Firebird {
 		void assign(Stack<Object, Capacity>& v)
 		{
 			delete stk;
-			stk = v.stk ? v.stk->dup(getPool()) : 0;
+			stk = v.stk ? v.stk->dup(AutoStorage::getPool()) : 0;
 
 			if (stk)
 			{

@@ -29,6 +29,7 @@
 #define JRD_OS_MOD_LOADER_H
 
 #include "../common/classes/fb_string.h"
+#include "../common/classes/alloc.h"
 
 /***
 	The ModuleLoader class is an abstraction of the dynamic code loading
@@ -52,7 +53,7 @@ public:
 		object is destructed.  Instances of this class are created
 		using the ModuleLoader::loadModule function.
 	**/
-	class Module
+	class Module : public Firebird::GlobalStorage
 	{
 	public:
 		/** findSymbol searchs through the module after it has been loaded into

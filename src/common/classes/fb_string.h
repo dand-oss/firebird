@@ -41,7 +41,8 @@
 
 namespace Firebird
 {
-	class AbstractString : private AutoStorage
+	// AbstractString inherits GlobalStorage for FB_NEW/delete compatibility in USE_SYSTEM_MALLOC mode
+	class AbstractString : private AutoStorage, public GlobalStorage
 	{
 	public:
 		typedef char char_type;
@@ -99,14 +100,14 @@ namespace Firebird
 					newSize = max_length() + 1;
 
 				// Allocate new buffer
-				char_type *newBuffer = FB_NEW(getPool()) char_type[newSize];
+				char_type *newBuffer = FB_NEW(AutoStorage::getPool()) char_type[newSize];
 
 				// Carefully copy string data including null terminator
 				memcpy(newBuffer, stringBuffer, sizeof(char_type) * (stringLength + 1u));
 
-				// Deallocate old buffer if needed
-				if (stringBuffer != inlineBuffer)
-					delete[] stringBuffer;
+			// Deallocate old buffer if needed
+			if (stringBuffer != inlineBuffer)
+				FB_DELETE_ARRAY(stringBuffer);
 
 				stringBuffer = newBuffer;
 				bufferSize = static_cast<internal_size_type>(newSize);
@@ -134,7 +135,7 @@ namespace Firebird
 					newSize = max_length() + 1;
 
 				// Allocate new buffer
-				stringBuffer = FB_NEW(getPool()) char_type[newSize];
+				stringBuffer = FB_NEW(AutoStorage::getPool()) char_type[newSize];
 				bufferSize = static_cast<internal_size_type>(newSize);
 			}
 			stringLength = static_cast<internal_size_type>(len);
@@ -567,11 +568,11 @@ namespace Firebird
 			return replace(first0 - c_str(), last0 - first0, first, last - first);
 		}
 
-		inline ~AbstractString()
-		{
-			if (stringBuffer != inlineBuffer)
-				delete[] stringBuffer;
-		}
+	inline ~AbstractString()
+	{
+		if (stringBuffer != inlineBuffer)
+			FB_DELETE_ARRAY(stringBuffer);
+	}
 	};
 
 	class StringComparator
