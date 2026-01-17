@@ -176,9 +176,9 @@ void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
 	if (size == 0)
 		size = 1;
 
-	// Use ::operator new to match standard delete for ASAN compatibility
-	void* mem = ::operator new(size, std::nothrow);
-	ALLOC_LOG("pool.allocate(%zu) = %p [::new]", size, mem);
+	// Use malloc to match direct free() calls in Firebird code (ASAN compatibility)
+	void* mem = malloc(size);
+	ALLOC_LOG("pool.allocate(%zu) = %p [malloc]", size, mem);
 	if (mem)
 		increment_usage(size);
 	return mem;
@@ -204,9 +204,9 @@ void MemoryPool::deallocate(void* block)
 	if (!block)
 		return;
 
-	ALLOC_LOG("pool.deallocate(%p) [::delete]", block);
-	// Use ::operator delete to match ::operator new for ASAN compatibility
-	::operator delete(block);
+	ALLOC_LOG("pool.deallocate(%p) [free]", block);
+	// Use free() to match malloc() allocation
+	free(block);
 }
 
 void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
