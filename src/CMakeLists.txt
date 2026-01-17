@@ -659,17 +659,28 @@ if(USE_SYSTEM_MALLOC)
     target_compile_definitions(fbembed2 PRIVATE USE_SYSTEM_MALLOC)
 endif()
 
-# Link bundled ICU (static) for character set support
-target_link_libraries(fbembed2
-    PRIVATE icu_uc
-    PRIVATE icu_i18n
-    PRIVATE icu_data
-    PUBLIC ${LIB_dl}
-    PUBLIC ${LIB_pthread}
-    PUBLIC ${LIB_m}
-    PUBLIC ${LIB_Ws2_32}
-    PUBLIC ${LIB_mpr}
-)
+# Link ICU for character set support
+# On Unix: use library names (not absolute paths) for portable exports
+# On Windows: use built ICU targets
+if(UNIX)
+    target_include_directories(fbembed2 PRIVATE ${ICU_INCLUDE_DIRS})
+    target_compile_definitions(fbembed2 PRIVATE
+        U_SHOW_CPLUSPLUS_API=0
+        U_SHOW_CPLUSPLUS_HEADER_API=0
+    )
+    target_link_libraries(fbembed2
+        PRIVATE icuuc icui18n icudata
+        PUBLIC dl pthread m
+    )
+else()
+    target_link_libraries(fbembed2
+        PRIVATE icu_uc
+        PRIVATE icu_i18n
+        PRIVATE icu_data
+        PUBLIC ${LIB_Ws2_32}
+        PUBLIC ${LIB_mpr}
+    )
+endif()
 
 set_target_properties(fbembed2 PROPERTIES
     OUTPUT_NAME fbembed2
@@ -693,10 +704,20 @@ endif()
 project_group(fbembed2 "Libraries")
 
 # Install embedded library with export for CMake find_package support
+set_target_properties(fbembed2 PROPERTIES EXPORT_NAME fbembed2)
+
 install(TARGETS fbembed2
+    EXPORT Firebird2EmbedTargets
     LIBRARY DESTINATION lib
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
+)
+
+# Install the embed export targets file
+install(EXPORT Firebird2EmbedTargets
+    FILE Firebird2EmbedTargets.cmake
+    NAMESPACE Firebird2::
+    DESTINATION lib/cmake/Firebird2
 )
 
 endif() # FIREBIRD_BUILD_FBEMBED
