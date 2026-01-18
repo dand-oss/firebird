@@ -673,10 +673,12 @@ if(UNIX)
         PUBLIC dl pthread m
     )
 else()
+    # Use BUILD_INTERFACE for ICU since it's statically linked into fbembed2
+    # and shouldn't be exported (would require ICU targets in export set)
     target_link_libraries(fbembed2
-        PRIVATE icu_uc
-        PRIVATE icu_i18n
-        PRIVATE icu_data
+        PRIVATE $<BUILD_INTERFACE:icu_uc>
+        PRIVATE $<BUILD_INTERFACE:icu_i18n>
+        PRIVATE $<BUILD_INTERFACE:icu_data>
         PUBLIC ${LIB_Ws2_32}
         PUBLIC ${LIB_mpr}
     )
