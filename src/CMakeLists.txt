@@ -673,12 +673,11 @@ if(UNIX)
         PUBLIC dl pthread m
     )
 else()
-    # Use BUILD_INTERFACE for ICU since it's statically linked into fbembed2
-    # and shouldn't be exported (would require ICU targets in export set)
+    # Link ICU statically (PRIVATE) but export as transitive deps for consumers
     target_link_libraries(fbembed2
-        PRIVATE $<BUILD_INTERFACE:icu_uc>
-        PRIVATE $<BUILD_INTERFACE:icu_i18n>
-        PRIVATE $<BUILD_INTERFACE:icu_data>
+        PRIVATE icu_uc
+        PRIVATE icu_i18n
+        PRIVATE icu_data
         PUBLIC ${LIB_Ws2_32}
         PUBLIC ${LIB_mpr}
     )
@@ -714,6 +713,14 @@ install(TARGETS fbembed2
     ARCHIVE DESTINATION lib
     RUNTIME DESTINATION bin
 )
+
+# Install ICU static libraries for consumers (Windows only - needed for transitive linking)
+if(WIN32)
+    install(TARGETS icu_uc icu_i18n icu_data
+        EXPORT Firebird2EmbedTargets
+        ARCHIVE DESTINATION lib
+    )
+endif()
 
 # Install the embed export targets file
 install(EXPORT Firebird2EmbedTargets
