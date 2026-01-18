@@ -87,7 +87,8 @@ else()
     # ICU stubdata (data) library
     add_library(icu_data STATIC ${ICU_STUBDATA_SOURCES})
     target_include_directories(icu_data
-        PUBLIC ${ICU_SOURCE_DIR}/common
+        PUBLIC $<BUILD_INTERFACE:${ICU_SOURCE_DIR}/common>
+        PUBLIC $<INSTALL_INTERFACE:include/icu>
     )
     target_compile_definitions(icu_data PRIVATE
         ${ICU_COMMON_DEFINITIONS}
@@ -97,7 +98,8 @@ else()
     # ICU common (uc) library
     add_library(icu_uc STATIC ${ICU_COMMON_SOURCES})
     target_include_directories(icu_uc
-        PUBLIC ${ICU_SOURCE_DIR}/common
+        PUBLIC $<BUILD_INTERFACE:${ICU_SOURCE_DIR}/common>
+        PUBLIC $<INSTALL_INTERFACE:include/icu>
         PRIVATE ${ICU_SOURCE_DIR}/i18n
     )
     target_compile_definitions(icu_uc
@@ -113,8 +115,9 @@ else()
     # ICU i18n library
     add_library(icu_i18n STATIC ${ICU_I18N_SOURCES})
     target_include_directories(icu_i18n
-        PUBLIC ${ICU_SOURCE_DIR}/common
-        PUBLIC ${ICU_SOURCE_DIR}/i18n  # For unicode/utrans.h etc.
+        PUBLIC $<BUILD_INTERFACE:${ICU_SOURCE_DIR}/common>
+        PUBLIC $<BUILD_INTERFACE:${ICU_SOURCE_DIR}/i18n>
+        PUBLIC $<INSTALL_INTERFACE:include/icu>
     )
     target_compile_definitions(icu_i18n
         PUBLIC
@@ -136,6 +139,16 @@ else()
     # Export include directories
     set(ICU_INCLUDE_DIRS ${ICU_SOURCE_DIR}/common PARENT_SCOPE)
     set(ICU_LIBRARIES icu_i18n icu_uc icu_data PARENT_SCOPE)
+
+    # Install ICU headers for consumers (needed when ICU targets are exported)
+    install(DIRECTORY ${ICU_SOURCE_DIR}/common/unicode
+        DESTINATION include/icu
+        FILES_MATCHING PATTERN "*.h"
+    )
+    install(DIRECTORY ${ICU_SOURCE_DIR}/i18n/unicode
+        DESTINATION include/icu
+        FILES_MATCHING PATTERN "*.h"
+    )
 
     message(STATUS "Building bundled ICU 3.0 from source:")
     message(STATUS "  Include: ${ICU_SOURCE_DIR}/common")
