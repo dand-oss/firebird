@@ -220,8 +220,10 @@ if (UNIX)
 endif()
 
 ################################################################################
-# LIBRARY: libib_util.so
+# LIBRARY: libib_util.so, ib_udf.so, fbudf.so (UDF shared libraries)
 ################################################################################
+
+if(FIREBIRD_BUILD_UDF_SHARED)
 
 add_library(ib_util SHARED extlib/ib_util.cpp)
 
@@ -269,6 +271,8 @@ set_target_properties(fbudf PROPERTIES
 
 set_output_directory_unix(fbudf UDF)
 project_group(fbudf "Libraries/UDF")
+
+endif() # FIREBIRD_BUILD_UDF_SHARED
 
 ################################################################################
 # LIBRARY: libfbclient2.so
@@ -659,6 +663,16 @@ if(USE_SYSTEM_MALLOC)
     target_compile_definitions(fbembed2 PRIVATE USE_SYSTEM_MALLOC)
 endif()
 
+# Static ICU linking - use direct function calls instead of dlopen/dlsym
+if(FIREBIRD_ICU_STATIC_LINK)
+    target_compile_definitions(fbembed2 PRIVATE FIREBIRD_ICU_STATIC)
+endif()
+
+# Embedded messages - use compiled-in messages[] array instead of firebird.msg file
+if(FIREBIRD_EMBEDDED_MESSAGES)
+    target_compile_definitions(fbembed2 PRIVATE FIREBIRD_EMBEDDED_MESSAGES)
+endif()
+
 # Link ICU for character set support
 # On Unix: use library names (not absolute paths) for portable exports
 # On Windows: use built ICU targets
@@ -735,6 +749,8 @@ endif() # FIREBIRD_BUILD_FBEMBED
 # INSTALL: Utility and UDF libraries
 ################################################################################
 
+if(FIREBIRD_BUILD_UDF_SHARED)
+
 # Install ib_util library
 install(TARGETS ib_util
     LIBRARY DESTINATION lib
@@ -748,15 +764,19 @@ install(TARGETS ib_udf fbudf
     RUNTIME DESTINATION UDF
 )
 
+endif() # FIREBIRD_BUILD_UDF_SHARED
+
 ################################################################################
 # INSTALL: Runtime support files (msg, conf)
 ################################################################################
 
-# Install firebird.msg (error messages) - required for readable error messages
-# Install to prefix root where libfbembed2 expects it (not in share/)
-install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.msg
-    DESTINATION .
-)
+# Install firebird.msg only if not using embedded messages
+if(NOT FIREBIRD_EMBEDDED_MESSAGES)
+    # Install to prefix root where libfbembed2 expects it (not in share/)
+    install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.msg
+        DESTINATION .
+    )
+endif()
 
 # Install firebird.conf to share/ directory
 install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.conf

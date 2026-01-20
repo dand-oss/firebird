@@ -43,6 +43,9 @@ add_compile_definitions(NAMESPACE=Vulcan)
 option(FIREBIRD_BUILD_FBCLIENT "Build remote client library (libfbclient2)" ON)
 option(FIREBIRD_BUILD_FBEMBED "Build embedded library (libfbembed2)" ON)
 option(FIREBIRD_BUILD_ICU "Build bundled ICU libraries" ON)  # Always ON - bundled ICU 63.1
+option(FIREBIRD_BUILD_UDF_SHARED "Build UDF shared libraries (ib_util, ib_udf, fbudf)" OFF)
+option(FIREBIRD_ICU_STATIC_LINK "Use statically linked ICU (no dlopen)" ON)
+option(FIREBIRD_EMBEDDED_MESSAGES "Use compiled-in error messages (no firebird.msg file)" ON)
 
 # Debug options
 option(USE_SYSTEM_MALLOC "Use system malloc instead of custom memory pool (for ASAN/Valgrind debugging)" ON)

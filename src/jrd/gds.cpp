@@ -1329,6 +1329,9 @@ int API_ROUTINE gds__msg_close(void *handle)
  *
  **************************************/
 
+#ifdef FIREBIRD_EMBEDDED_MESSAGES
+	return 0;  // Nothing to close - messages are compiled in
+#else
 	gds_msg* messageL = static_cast<gds_msg*>(handle);
 
 	Firebird::MutexLockGuard guard(global_msg_mutex);
@@ -1351,6 +1354,7 @@ int API_ROUTINE gds__msg_close(void *handle)
 		return 0;
 
 	return close(fd);
+#endif
 }
 
 
@@ -1453,6 +1457,25 @@ SSHORT API_ROUTINE gds__msg_lookup(void* handle,
  *	number if we can't find the message.
  *
  **************************************/
+#ifdef FIREBIRD_EMBEDDED_MESSAGES
+	// Use compiled-in messages[] array instead of file I/O
+	const ULONG code = MSG_NUMBER(facility, number);
+	for (int i = 0; messages[i].code_number; ++i)
+	{
+		if (messages[i].code_number == (SLONG)code)
+		{
+			const char* text = messages[i].code_text;
+			USHORT len = strlen(text);
+			USHORT n = MIN(length - 1, len);
+			memcpy(buffer, text, n);
+			buffer[n] = 0;
+			if (flags)
+				*flags = 0;
+			return len;
+		}
+	}
+	return -1;  // Not found
+#else
 // Handle default message file
 	int status = -1;
 	gds_msg* messageL = (gds_msg*) handle;
@@ -1572,6 +1595,7 @@ SSHORT API_ROUTINE gds__msg_lookup(void* handle,
 	}
 
 	return status;
+#endif  // FIREBIRD_EMBEDDED_MESSAGES
 }
 
 
@@ -1588,6 +1612,12 @@ int API_ROUTINE gds__msg_open(void** handle, const TEXT* filename)
  *	and update a message handle.
  *
  **************************************/
+#ifdef FIREBIRD_EMBEDDED_MESSAGES
+	// No file needed - messages are compiled in
+	static int dummy_handle = 1;
+	*handle = &dummy_handle;
+	return 0;  // Success
+#else
 	const int n = open(filename, O_RDONLY | O_BINARY, 0);
 	if (n < 0)
 		return -2;
@@ -1631,6 +1661,7 @@ int API_ROUTINE gds__msg_open(void** handle, const TEXT* filename)
 	*handle = messageL;
 
 	return 0;
+#endif  // FIREBIRD_EMBEDDED_MESSAGES
 }
 
 

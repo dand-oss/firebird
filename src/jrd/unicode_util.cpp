@@ -48,6 +48,11 @@
 #include "unicode/uchar.h"
 #include "unicode/ucnv.h"
 #include "unicode/ucol.h"
+#ifdef FIREBIRD_ICU_STATIC
+#include "unicode/uclean.h"  // for u_init, u_versionToString
+#include "unicode/uloc.h"    // for uloc_countAvailable, uloc_getAvailable
+#include "unicode/uset.h"    // for uset_* functions
+#endif
 
 // The next major ICU version after 4.8 is 49.
 #define ICU_NEW_VERSION_MEANING	49
@@ -94,8 +99,10 @@ public:
 		while (ciAiTransCache.hasData())
 			utransClose(ciAiTransCache.pop());
 
+#ifndef FIREBIRD_ICU_STATIC
 		delete ucModule;
 		delete inModule;
+#endif
 	}
 
 	template <typename T> void getEntryPoint(const char* name, ModuleLoader::Module* module, T& ptr)
@@ -149,6 +156,34 @@ public:
 		MutexLockGuard guard(ciAiTransCacheMutex);
 		ciAiTransCache.push(trans);
 	}
+
+#ifdef FIREBIRD_ICU_STATIC
+	// Assign function pointers directly to statically linked ICU functions
+	void assignStaticFunctions()
+	{
+		// ucModule functions - cast needed for minor signature differences
+		uInit = u_init;
+		uVersionToString = (void (U_EXPORT2 *)(UVersionInfo, char*))u_versionToString;
+		ulocCountAvailable = uloc_countAvailable;
+		ulocGetAvailable = uloc_getAvailable;
+		usetClose = uset_close;
+		usetGetItem = uset_getItem;
+		usetGetItemCount = uset_getItemCount;
+		usetOpen = uset_open;
+
+		// inModule functions
+		ucolClose = ucol_close;
+		ucolGetContractions = ucol_getContractions;
+		ucolGetSortKey = ucol_getSortKey;
+		ucolOpen = ucol_open;
+		ucolSetAttribute = ucol_setAttribute;
+		ucolStrColl = ucol_strcoll;
+		ucolGetVersion = ucol_getVersion;
+		utransOpen = utrans_open;
+		utransClose = utrans_close;
+		utransTransUChars = utrans_transUChars;
+	}
+#endif
 
 	int majorVersion;
 	int minorVersion;
@@ -847,6 +882,38 @@ INTL_BOOL UnicodeUtil::utf32WellFormed(ULONG len, const ULONG* str, ULONG* offen
 UnicodeUtil::ICU* UnicodeUtil::loadICU(const Firebird::string& icuVersion,
 	const Firebird::string& configInfo)
 {
+#ifdef FIREBIRD_ICU_STATIC
+	// Static ICU mode: use a singleton ICU instance with direct function assignment
+	static ICU* staticICU = NULL;
+	static Firebird::Mutex staticICUMutex;
+
+	Firebird::MutexLockGuard guard(staticICUMutex);
+	if (staticICU)
+		return staticICU;
+
+	staticICU = FB_NEW(*getDefaultMemoryPool()) ICU(U_ICU_VERSION_MAJOR_NUM, U_ICU_VERSION_MINOR_NUM);
+	staticICU->inModule = NULL;
+	staticICU->ucModule = NULL;
+
+	staticICU->assignStaticFunctions();
+
+	// Initialize and validate
+	UErrorCode status = U_ZERO_ERROR;
+	if (staticICU->uInit)
+		staticICU->uInit(&status);
+
+	UCollator* coll = staticICU->ucolOpen("", &status);
+	if (!coll) {
+		delete staticICU;
+		staticICU = NULL;
+		return NULL;
+	}
+	staticICU->ucolGetVersion(coll, staticICU->collVersion);
+	staticICU->ucolClose(coll);
+
+	return staticICU;
+#else
+	// Dynamic ICU loading mode
 #if defined(WIN_NT)
 	const char* const inTemplate = "icuin%s.dll";
 	const char* const ucTemplate = "icuuc%s.dll";
@@ -1009,6 +1076,7 @@ UnicodeUtil::ICU* UnicodeUtil::loadICU(const Firebird::string& icuVersion,
 	}
 
 	return NULL;
+#endif  // FIREBIRD_ICU_STATIC
 }
 
 
