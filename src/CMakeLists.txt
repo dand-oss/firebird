@@ -776,7 +776,7 @@ set_exported_symbols        (legacy_auth fbplugin)
 # Core engine plugin
 install(TARGETS engine
     LIBRARY DESTINATION lib/firebird/plugins
-    RUNTIME DESTINATION bin/plugins
+    RUNTIME DESTINATION plugins
 )
 
 # International support
@@ -794,13 +794,13 @@ install(TARGETS ib_util
 # Authentication plugins
 install(TARGETS srp legacy_auth legacy_usermanager
     LIBRARY DESTINATION lib/firebird/plugins
-    RUNTIME DESTINATION bin/plugins
+    RUNTIME DESTINATION plugins
 )
 
 # UDR engine
 install(TARGETS udr_engine
     LIBRARY DESTINATION lib/firebird/plugins
-    RUNTIME DESTINATION bin/plugins
+    RUNTIME DESTINATION plugins
 )
 
 # Configuration files
