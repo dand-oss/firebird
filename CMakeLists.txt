@@ -40,7 +40,7 @@ add_compile_definitions($<$<CONFIG:Debug>:DEV_BUILD>)
 add_compile_definitions(NAMESPACE=Vulcan)
 
 # Build options
-option(FIREBIRD_BUILD_FBCLIENT "Build remote client library (libfbclient2)" ON)
+option(FIREBIRD_BUILD_FBCLIENT "Build remote client library (libfbclient2)" OFF)
 option(FIREBIRD_BUILD_FBEMBED "Build embedded library (libfbembed2)" ON)
 option(FIREBIRD_BUILD_ICU "Build bundled ICU libraries" ON)  # Always ON - bundled ICU 63.1
 option(FIREBIRD_BUILD_UDF_SHARED "Build UDF shared libraries (ib_util, ib_udf, fbudf)" OFF)

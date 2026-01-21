@@ -415,27 +415,6 @@ install(EXPORT Firebird2Targets
     DESTINATION lib/cmake/Firebird2
 )
 
-# Package configuration
-include(CMakePackageConfigHelpers)
-
-write_basic_package_version_file(
-    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2ConfigVersion.cmake"
-    VERSION ${FIREBIRD_VERSION}
-    COMPATIBILITY SameMajorVersion
-)
-
-configure_package_config_file(
-    "${CMAKE_SOURCE_DIR}/Firebird2Config.cmake.in"
-    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2Config.cmake"
-    INSTALL_DESTINATION lib/cmake/Firebird2
-)
-
-install(FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2Config.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2ConfigVersion.cmake"
-    DESTINATION lib/cmake/Firebird2
-)
-
 endif() # FIREBIRD_BUILD_FBCLIENT
 
 ################################################################################
@@ -781,4 +760,28 @@ endif()
 # Install firebird.conf to share/ directory
 install(FILES ${CMAKE_SOURCE_DIR}/share/firebird.conf
     DESTINATION share
+)
+
+################################################################################
+# Package configuration (always generated, includes available targets)
+################################################################################
+
+include(CMakePackageConfigHelpers)
+
+write_basic_package_version_file(
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2ConfigVersion.cmake"
+    VERSION ${FIREBIRD_VERSION}
+    COMPATIBILITY SameMajorVersion
+)
+
+configure_package_config_file(
+    "${CMAKE_SOURCE_DIR}/Firebird2Config.cmake.in"
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2Config.cmake"
+    INSTALL_DESTINATION lib/cmake/Firebird2
+)
+
+install(FILES
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2Config.cmake"
+    "${CMAKE_CURRENT_BINARY_DIR}/Firebird2ConfigVersion.cmake"
+    DESTINATION lib/cmake/Firebird2
 )
