@@ -50,6 +50,20 @@ Base::Base(ISC_STATUS k, ISC_STATUS c) :
 {
 }
 
+Base::~Base()
+{
+#ifdef USE_SYSTEM_MALLOC
+	// When using system malloc, pool-placement new uses malloc,
+	// so we must use free() to match (not operator delete)
+	if (implementation) {
+		implementation->~ImplBase();
+		free(implementation);
+	}
+#else
+	delete implementation;
+#endif
+}
+
 StatusVector::ImplStatusVector::ImplStatusVector(const ISC_STATUS* s) throw() : Base::ImplBase(0, 0)
 {
 	fb_assert(s);

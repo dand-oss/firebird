@@ -79,7 +79,7 @@ protected:
 
 	Base(ISC_STATUS k, ISC_STATUS c);// : implementation(new ImplBase(k, c)) { }
 	explicit Base(ImplBase* i) throw() : implementation(i) { }
-	~Base() { delete implementation; }
+	~Base();
 
 	ImplBase* const implementation;
 
