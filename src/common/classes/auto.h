@@ -43,11 +43,7 @@ class SimpleDelete
 public:
 	static void clear(What *ptr)
 	{
-#ifdef USE_SYSTEM_MALLOC
-		if (ptr) { ptr->~What(); free(ptr); }
-#else
 		delete ptr;
-#endif
 	}
 };
 
@@ -57,11 +53,7 @@ class ArrayDelete
 public:
 	static void clear(What* ptr)
 	{
-#ifdef USE_SYSTEM_MALLOC
-		free(ptr);
-#else
 		delete[] ptr;
-#endif
 	}
 };
 
