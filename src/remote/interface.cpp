@@ -5367,7 +5367,7 @@ static void disconnect( rem_port* port)
 
 	// Cleanup the queue
 
-	delete port->port_deferred_packets;
+	FB_DELETE(port->port_deferred_packets);
 
 	// Clear context reference for the associated event handler
 	// to avoid SEGV during shutdown
