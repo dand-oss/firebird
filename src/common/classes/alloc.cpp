@@ -290,17 +290,32 @@ void AutoStorage::ProbeStack() const
 
 } // namespace Firebird
 
-// In USE_SYSTEM_MALLOC mode, do NOT override global operator new/delete.
-// Overriding them in a shared library causes ASAN mismatches because other
-// libraries (compiled before this) use ASAN's operators while Firebird's
-// operators would use malloc/free. The mismatch is unavoidable when Firebird
-// is loaded as a .so in a program with ASAN.
-//
-// To suppress ASAN warnings for internal Firebird allocations, run with:
-//   ASAN_OPTIONS=alloc_dealloc_mismatch=0
-//
-// The pool.allocate()/deallocate() functions still use malloc/free for
-// consistency within Firebird's internal memory management.
+// Global operator new/delete for USE_SYSTEM_MALLOC mode.
+// These use malloc/free to match the pool-based placement new operators,
+// which also use malloc/free when USE_SYSTEM_MALLOC is defined.
+void* operator new(size_t s) THROW_BAD_ALLOC
+{
+	void* mem = malloc(s);
+	if (!mem)
+		throw std::bad_alloc();
+	return mem;
+}
+void* operator new[](size_t s) THROW_BAD_ALLOC
+{
+	void* mem = malloc(s);
+	if (!mem)
+		throw std::bad_alloc();
+	return mem;
+}
+
+void operator delete(void* mem) throw()
+{
+	free(mem);
+}
+void operator delete[](void* mem) throw()
+{
+	free(mem);
+}
 
 #else // USE_SYSTEM_MALLOC
 //=============================================================================
