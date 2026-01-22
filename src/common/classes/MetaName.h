@@ -31,6 +31,7 @@
 
 #include "../common/classes/fb_string.h"
 #include "../common/classes/fb_pair.h"
+#include "../common/classes/alloc.h"
 #include "../jrd/constants.h"
 
 #ifdef SFIO
@@ -39,7 +40,9 @@
 
 namespace Firebird {
 
-class MetaName
+// MetaName derives from GlobalStorage to provide custom operator delete
+// that uses free() in USE_SYSTEM_MALLOC mode for ASAN compatibility.
+class MetaName : public GlobalStorage
 {
 private:
 	char data[MAX_SQL_IDENTIFIER_SIZE];

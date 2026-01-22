@@ -224,7 +224,7 @@ inline void releaseBuffer(sort_context* scb)
 		dbb->dbb_sort_buffers.push(scb->scb_memory);
 	}
 	else
-		delete scb->scb_memory;
+		free(scb->scb_memory);
 }
 
 

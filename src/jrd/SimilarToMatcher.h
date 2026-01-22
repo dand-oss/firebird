@@ -78,7 +78,7 @@ private:
 
 		~Evaluator()
 		{
-			delete[] branches;
+			FB_DELETE_ARRAY(branches);
 		}
 
 		bool getResult();

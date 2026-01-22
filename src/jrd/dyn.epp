@@ -187,6 +187,10 @@ void DYN_error(bool	status_flag, USHORT number, const SafeArg& sarg)
 
 	TEXT error_buffer[BUFFER_MEDIUM];
 	Arg::Gds local_status(isc_no_meta_update);
+	// sqlstate must be declared here (not inside if block) to remain in scope
+	// until after ERR_make_permanent, since Arg::SqlState stores a pointer to it
+	FB_SQLSTATE_STRING sqlstate;
+	sqlstate[0] = '\0';
 
 	if (number)
 	{
@@ -195,7 +199,6 @@ void DYN_error(bool	status_flag, USHORT number, const SafeArg& sarg)
 		ISC_STATUS_ARRAY temp_status;
 		fb_utils::init_status(temp_status);
 		temp_status[1] = ENCODE_ISC_MSG(number, DYN_MSG_FAC);
-		FB_SQLSTATE_STRING sqlstate;
 		fb_sqlstate(sqlstate, temp_status);
 		if (!strcmp(sqlstate, "HY000"))
 			strcpy(sqlstate, "42000"); // default SQLSTATE for DYN

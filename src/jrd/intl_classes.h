@@ -39,7 +39,7 @@
 
 namespace Jrd {
 
-class PatternMatcher
+class PatternMatcher : public Firebird::GlobalStorage
 {
 public:
 	PatternMatcher(MemoryPool& aPool, TextType* aTextType)

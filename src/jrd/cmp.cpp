@@ -1954,7 +1954,7 @@ void CMP_get_desc(thread_db* tdbb, CompilerScratch* csb, jrd_nod* node, DSC* des
 				desc, args.getCount(), const_cast<const dsc**>(args.begin()));
 
 			for (dsc** pArgs = args.begin(); pArgs != args.end(); ++pArgs)
-				delete *pArgs;
+				FB_DELETE(*pArgs);
 		}
 		return;
 

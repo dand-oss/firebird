@@ -366,7 +366,7 @@ USHORT BTR_all(thread_db*		tdbb,
 		return 0;
 	}
 
-	delete *csb_idx;
+	FB_DELETE(*csb_idx);
 	*csb_idx = FB_NEW_RPT(*tdbb->getDefaultPool(), root->irt_count) IndexDescAlloc();
 	index_desc* buffer = (*csb_idx)->items;
 	USHORT count = 0;
@@ -4343,15 +4343,15 @@ static SLONG fast_load(thread_db* tdbb,
 				FB_DELETE_ARRAY(walkJumpNode[i].data);
 			}
 			freeJumpNodes->clear();
-			delete freeJumpNodes;
+			FB_DELETE(freeJumpNodes);
 		}
-		delete jumpNodes;
+		FB_DELETE(jumpNodes);
 		for (keyList::iterator itr3 = jumpKeys->begin(); itr3 < jumpKeys->end(); ++itr3)
 		{
 			FB_DELETE_ARRAY((*itr3)->keyData);
-			delete (*itr3);
+			FB_DELETE(*itr3);
 		}
-		delete jumpKeys;
+		FB_DELETE(jumpKeys);
 	}	// try
 	catch (const Firebird::Exception& ex)
 	{
@@ -5641,7 +5641,7 @@ static contents garbage_collect(thread_db* tdbb, WIN* window, SLONG parent_numbe
 				FB_DELETE_ARRAY(walkJumpNode[i].data);
 			}
 			jumpNodes->clear();
-			delete jumpNodes;
+			FB_DELETE(jumpNodes);
 			return contents_above_threshold;
 		}
 
@@ -5711,7 +5711,7 @@ static contents garbage_collect(thread_db* tdbb, WIN* window, SLONG parent_numbe
 		left_page->btr_length = newBucket->btr_length + jumpersNewSize;
 
 		jumpNodes->clear();
-		delete jumpNodes;
+		FB_DELETE(jumpNodes);
 	}
 	else
 	{
