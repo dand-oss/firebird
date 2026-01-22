@@ -676,13 +676,13 @@ public:
 
 		for (DeferredWork** itr = dfw_args.begin(); itr < dfw_args.end(); ++itr)
 		{
-			delete *itr;
+			FB_DELETE(*itr);
 		}
 
 		if (dfw_lock)
 		{
 			LCK_release(JRD_get_thread_data(), dfw_lock);
-			delete dfw_lock;
+			FB_DELETE(dfw_lock);
 		}
 	}
 
@@ -1030,7 +1030,7 @@ void DFW_delete_deferred( jrd_tra* transaction, SLONG sav_number)
 		DeferredWork* work;
 		while (work = transaction->tra_deferred_job->work)
 		{
-			delete work;
+			FB_DELETE(work);
 		}
 		transaction->tra_flags &= ~TRA_deferred_meta;
 		return;
@@ -1046,7 +1046,7 @@ void DFW_delete_deferred( jrd_tra* transaction, SLONG sav_number)
 	{
 		DeferredWork* work(i);
 		++i;
-		delete work;
+		FB_DELETE(work);
 	}
 }
 
@@ -1109,12 +1109,12 @@ void DFW_merge_work(jrd_tra* transaction,
 		else
 		{
 			foundWork->dfw_count += work->dfw_count;
-			delete work;
+			FB_DELETE(work);
 		}
 	}
 
 	job->hash.remove(old_sav_number);
-	delete oldSp;
+	FB_DELETE(oldSp);
 }
 
 
@@ -1244,7 +1244,7 @@ void DFW_perform_work(thread_db* tdbb, jrd_tra* transaction)
 			break;
 
 		default:
-			delete work;
+			FB_DELETE(work);
 			break;
 		}
 	}
@@ -1296,12 +1296,12 @@ void DFW_perform_post_commit_work(jrd_tra* transaction)
 										  work->dfw_name.length(), work->dfw_name.c_str(),
 										  work->dfw_count);
 
-			delete work;
+			FB_DELETE(work);
 			pending_events = true;
 			break;
 		case dfw_delete_shadow:
 			unlink(work->dfw_name.c_str());
-			delete work;
+			FB_DELETE(work);
 			break;
 		default:
 			break;
@@ -3582,7 +3582,7 @@ static bool create_relation(thread_db*	tdbb,
 		if (work->dfw_lock)
 		{
 			LCK_release(tdbb, work->dfw_lock);
-			delete work->dfw_lock;
+			FB_DELETE(work->dfw_lock);
 			work->dfw_lock = NULL;
 		}
 		break;
@@ -3721,7 +3721,7 @@ static bool create_relation(thread_db*	tdbb,
 		}
 
 		LCK_release(tdbb, lock);
-		delete lock;
+		FB_DELETE(lock);
 		work->dfw_lock = NULL;
 
 		if (!REQUEST(irq_c_relation))
@@ -4780,9 +4780,9 @@ static bool delete_index(thread_db* tdbb, SSHORT phase, DeferredWork* work,
 				if (index->idl_lock)
 				{
 					LCK_release(tdbb, index->idl_lock);
-					delete index->idl_lock;
+					FB_DELETE(index->idl_lock);
 				}
-				delete index;
+				FB_DELETE(index);
 
 				/* Release index refresh lock and memory. */
 
@@ -4795,8 +4795,8 @@ static bool delete_index(thread_db* tdbb, SSHORT phase, DeferredWork* work,
 
 						/* Lock was released in IDX_delete_index(). */
 
-						delete index_block->idb_lock;
-						delete index_block;
+						FB_DELETE(index_block->idb_lock);
+						FB_DELETE(index_block);
 						break;
 					}
 				}
@@ -5160,10 +5160,10 @@ static bool delete_relation(thread_db* tdbb, SSHORT phase, DeferredWork* work,
 #ifdef GARBAGE_THREAD
 		// Free any memory associated with the relation's garbage collection bitmap
 
-		delete relation->rel_gc_bitmap;
+		FB_DELETE(relation->rel_gc_bitmap);
 		relation->rel_gc_bitmap = NULL;
 
-	    delete relation->rel_garbage;
+	    FB_DELETE(relation->rel_garbage);
 	    relation->rel_garbage = NULL;
 #endif
 		if (relation->rel_file) {
@@ -6083,12 +6083,12 @@ static Format* make_format(thread_db* tdbb, jrd_rel* relation, USHORT* version,
 	while ( (tfb = stack) )
 	{
 		stack = tfb->tfb_next;
-		delete tfb;
+		FB_DELETE(tfb);
 	}
 
 	if (offset > MAX_FORMAT_SIZE)
 	{
-		delete format;
+		FB_DELETE(format);
 		ERR_post(Arg::Gds(isc_no_meta_update) <<
 				 Arg::Gds(isc_rec_size_err) << Arg::Num(offset) <<
 				 Arg::Gds(isc_table_name) << Arg::Str(relation->rel_name));
@@ -6100,7 +6100,7 @@ static Format* make_format(thread_db* tdbb, jrd_rel* relation, USHORT* version,
 		(old_format = MET_format(tdbb, relation, (format->fmt_version - 1))) &&
 		(formatsAreEqual(old_format, format)))
 	{
-		delete format;
+		FB_DELETE(format);
 		*version = old_format->fmt_version;
 		return old_format;
 	}
@@ -7215,12 +7215,12 @@ static void put_summary_blob(thread_db* tdbb, blb* blob, rsr_t type, bid* blob_i
 	}
 	catch (const Firebird::Exception&) {
 		if (buffer != temp)
-			delete[] buffer;
+			FB_DELETE_ARRAY(buffer);
 		throw;
 	}
 
 	if (buffer != temp)
-		delete[] buffer;
+		FB_DELETE_ARRAY(buffer);
 }
 
 
@@ -7302,12 +7302,12 @@ static void put_summary_record(thread_db* tdbb,
 	}
 	catch (const Firebird::Exception&) {
 		if (buffer != temp)
-			delete[] buffer;
+			FB_DELETE_ARRAY(buffer);
 		throw;
 	}
 
 	if (buffer != temp)
-		delete[] buffer;
+		FB_DELETE_ARRAY(buffer);
 }
 
 

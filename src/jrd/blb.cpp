@@ -1826,7 +1826,7 @@ void BLB_release_array(ArrayField* array)
  *
  **************************************/
 
-	delete[] array->arr_data;
+	FB_DELETE_ARRAY(array->arr_data);
 
 	jrd_tra* transaction = array->arr_transaction;
 	if (transaction)

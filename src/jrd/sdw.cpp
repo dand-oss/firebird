@@ -208,7 +208,7 @@ int SDW_add_file(thread_db* tdbb, const TEXT* file_name, SLONG start, USHORT sha
 		header->hdr_header.pag_checksum = CCH_checksum(&temp_bdb);
 		if (!PIO_write(shadow_file, &temp_bdb, reinterpret_cast<Ods::pag*>(header), 0))
 		{
-			delete[] spare_buffer;
+			FB_DELETE_ARRAY(spare_buffer);
 			return 0;
 		}
 		next->fil_fudge = 1;
@@ -254,7 +254,7 @@ int SDW_add_file(thread_db* tdbb, const TEXT* file_name, SLONG start, USHORT sha
 			header->hdr_header.pag_checksum = CCH_checksum(&temp_bdb);
 			if (!PIO_write(	shadow_file, &temp_bdb, reinterpret_cast<Ods::pag*>(header), 0))
 			{
-				delete[] spare_buffer;
+				FB_DELETE_ARRAY(spare_buffer);
 				return 0;
 			}
 			if (file->fil_min_page) {
@@ -266,12 +266,12 @@ int SDW_add_file(thread_db* tdbb, const TEXT* file_name, SLONG start, USHORT sha
 			file->fil_fudge = 1;
 		}
 
-		delete[] spare_buffer;
+		FB_DELETE_ARRAY(spare_buffer);
 
 	}	// try
 	catch (const Firebird::Exception&)
 	{
-		delete[] spare_buffer;
+		FB_DELETE_ARRAY(spare_buffer);
 		throw;
 	}
 
@@ -1051,7 +1051,7 @@ void SDW_start(thread_db* tdbb, const TEXT* file_name,
 
 	PAG_init2(tdbb, shadow_number);
 
-	delete[] spare_buffer;
+	FB_DELETE_ARRAY(spare_buffer);
 
 	}	// try
 	catch (const Firebird::Exception& ex)
@@ -1065,7 +1065,7 @@ void SDW_start(thread_db* tdbb, const TEXT* file_name,
 			PIO_close(shadow_file);
 			delete shadow_file;
 		}
-		delete[] spare_buffer;
+		FB_DELETE_ARRAY(spare_buffer);
 		if (file_flags & FILE_manual && !delete_files) {
 			ERR_post(Arg::Gds(isc_shadow_missing) << Arg::Num(shadow_number));
 		}

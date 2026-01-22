@@ -598,7 +598,7 @@ static void close_merge(thread_db* tdbb, RecordSource* rsb, irsb_mrg* impure)
 		delete mfb->mfb_space;
 		mfb->mfb_space = NULL;
 
-		delete[] mfb->mfb_block_data;
+		FB_DELETE_ARRAY(mfb->mfb_block_data);
 		mfb->mfb_block_data = NULL;
 	}
 }
@@ -3771,7 +3771,7 @@ void RSBRecurse::cleanup_level(jrd_req* request, RecordSource* rsb, irsb_recurse
 	const USHORT streams = (USHORT)(U_IPTR) rsb->rsb_arg[rsb->rsb_count];
 	const ULONG inner_size = (ULONG)(U_IPTR) rsb->rsb_arg[streams + rsb->rsb_count + 1];
 
-	delete[] irsb->irsb_data;
+	FB_DELETE_ARRAY(irsb->irsb_data);
 
 	char* tmp = irsb->irsb_stack;
 	memcpy(irsb, tmp, inner_size);
@@ -3791,5 +3791,5 @@ void RSBRecurse::cleanup_level(jrd_req* request, RecordSource* rsb, irsb_recurse
 		delete rec;
 	}
 
-	delete[] tmp;
+	FB_DELETE_ARRAY(tmp);
 }

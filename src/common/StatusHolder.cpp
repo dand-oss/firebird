@@ -95,13 +95,13 @@ void StatusHolder::clear()
 		{
 		case isc_arg_cstring:
 			ptr++;
-			delete[] reinterpret_cast<char*>(*ptr++);
+			FB_DELETE_ARRAY(reinterpret_cast<char*>(*ptr++));
 			break;
 
 		case isc_arg_string:
 		case isc_arg_interpreted:
 		case isc_arg_sql_state:
-			delete[] reinterpret_cast<char*>(*ptr++);
+			FB_DELETE_ARRAY(reinterpret_cast<char*>(*ptr++));
 			break;
 
 		default:

@@ -630,6 +630,13 @@ inline void operator delete[](void* mem ALLOC_PARAMS) throw()
 #define FB_NEW_RPT(pool, count) new(pool, count)
 #endif // DEBUG_GDS_ALLOC
 
+// Allocation macro for arrays (pairs with FB_DELETE_ARRAY)
+#ifdef USE_SYSTEM_MALLOC
+	#define FB_NEW_ARRAY(type, count) static_cast<type*>(malloc((count) * sizeof(type)))
+#else
+	#define FB_NEW_ARRAY(type, count) new type[count]
+#endif
+
 // Deallocation macro for pool-allocated arrays (matches FB_NEW allocation)
 #ifdef USE_SYSTEM_MALLOC
 	#define FB_DELETE_ARRAY(ptr) free(ptr)

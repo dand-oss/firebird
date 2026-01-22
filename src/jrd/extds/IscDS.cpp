@@ -304,8 +304,8 @@ IscStatement::IscStatement(IscConnection& conn) :
 
 IscStatement::~IscStatement()
 {
-	delete[] (char*) m_in_xsqlda;
-	delete[] (char*) m_out_xsqlda;
+	FB_DELETE_ARRAY((char*) m_in_xsqlda);
+	FB_DELETE_ARRAY((char*) m_out_xsqlda);
 }
 
 void IscStatement::doPrepare(thread_db* tdbb, const string& sql)
@@ -352,7 +352,7 @@ void IscStatement::doPrepare(thread_db* tdbb, const string& sql)
 	if (m_out_xsqlda->sqld > m_out_xsqlda->sqln)
 	{
 		const int n = m_out_xsqlda->sqld;
-		delete[] (char*) m_out_xsqlda;
+		FB_DELETE_ARRAY((char*) m_out_xsqlda);
 
 		m_out_xsqlda = (XSQLDA*) FB_NEW (getPool()) char [XSQLDA_LENGTH(n)];
 		m_out_xsqlda->sqln = n;
@@ -400,7 +400,7 @@ void IscStatement::doPrepare(thread_db* tdbb, const string& sql)
 	if (m_in_xsqlda->sqld > m_in_xsqlda->sqln)
 	{
 		const int n = m_in_xsqlda->sqld;
-		delete[] (char*) m_in_xsqlda;
+		FB_DELETE_ARRAY((char*) m_in_xsqlda);
 
 		m_in_xsqlda = (XSQLDA*) FB_NEW (getPool()) char [XSQLDA_LENGTH(n)];
 		m_in_xsqlda->sqln = n;

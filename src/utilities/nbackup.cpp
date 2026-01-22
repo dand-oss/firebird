@@ -1082,7 +1082,7 @@ void NBackup::restore_database(const BackupFiles& files)
 							b_error::raise(uSvc, "Level 0 backup is not restored");
 						}
 						fixup_database();
-						delete[] page_buffer;
+						FB_DELETE_ARRAY(page_buffer);
 						return;
 					}
 					// Never reaches this point when run as service
@@ -1104,7 +1104,7 @@ void NBackup::restore_database(const BackupFiles& files)
 				{
 					close_database();
 					fixup_database();
-					delete[] page_buffer;
+					FB_DELETE_ARRAY(page_buffer);
 					return;
 				}
 				bakname = files[curLevel];
@@ -1221,7 +1221,7 @@ void NBackup::restore_database(const BackupFiles& files)
 	}
 	catch (const Exception&)
 	{
-		delete[] page_buffer;
+		FB_DELETE_ARRAY(page_buffer);
 		if (delete_database)
 			remove(dbname.c_str());
 		throw;

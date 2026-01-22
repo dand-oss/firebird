@@ -209,13 +209,13 @@ ConfigImpl::~ConfigImpl()
 		switch (entries[i].data_type)
 		{
 		case TYPE_STRING:
-			delete[] (char*) values[i];
+			FB_DELETE_ARRAY((char*) values[i]);
 			break;
 		//case TYPE_STRING_VECTOR:
 		//	break;
 		}
 	}
-	delete[] values;
+	FB_DELETE_ARRAY(values);
 }
 
 string ConfigImpl::getValue(ConfigFile& file, const ConfigKey key)

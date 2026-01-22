@@ -897,7 +897,7 @@ static void free_cstring( XDR* xdrs, CSTRING* cstring)
 
 	if (cstring->cstr_allocated)
 	{
-		delete[] cstring->cstr_address;
+		FB_DELETE_ARRAY(cstring->cstr_address);
 		DEBUG_XDR_FREE(xdrs, cstring, cstring->cstr_address, cstring->cstr_allocated);
 	}
 
@@ -1392,7 +1392,7 @@ static bool_t xdr_slice(XDR* xdrs, lstring* slice, /*USHORT sdl_length,*/ const 
 			return TRUE;
 		if (slice->lstr_length > slice->lstr_allocated && slice->lstr_allocated)
 		{
-			delete[] slice->lstr_address;
+			FB_DELETE_ARRAY(slice->lstr_address);
 			DEBUG_XDR_FREE(xdrs, slice, slice->lstr_address, slice->lstr_allocated);
 			slice->lstr_address = NULL;
 		}
@@ -1412,7 +1412,7 @@ static bool_t xdr_slice(XDR* xdrs, lstring* slice, /*USHORT sdl_length,*/ const 
 
 	case XDR_FREE:
 		if (slice->lstr_allocated) {
-			delete[] slice->lstr_address;
+			FB_DELETE_ARRAY(slice->lstr_address);
 			DEBUG_XDR_FREE(xdrs, slice, slice->lstr_address, slice->lstr_allocated);
 		}
 		slice->lstr_address = NULL;

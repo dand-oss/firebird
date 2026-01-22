@@ -84,9 +84,9 @@ Parser::~Parser()
 		yyFreeState(p);
 	}
 
-	delete[] yylvals;
-	delete[] yylpsns;
-	delete[] yylexemes;
+	FB_DELETE_ARRAY(yylvals);
+	FB_DELETE_ARRAY(yylpsns);
+	FB_DELETE_ARRAY(yylexemes);
 }
 
 

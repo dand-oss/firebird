@@ -716,7 +716,7 @@ bool IntlUtil::readAttributeChar(Jrd::CharSet* cs, const UCHAR** s, const UCHAR*
 
 static void unicodeDestroy(texttype* tt)
 {
-	delete[] const_cast<ASCII*>(tt->texttype_name);
+	FB_DELETE_ARRAY(const_cast<ASCII*>(tt->texttype_name));
 	delete static_cast<TextTypeImpl*>(tt->texttype_impl);
 }
 

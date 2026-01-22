@@ -786,7 +786,7 @@ void FUN_evaluate(thread_db* tdbb, UserFunction* function, jrd_nod* node, impure
 
 	while (array_stack.hasData())
 	{
-		delete[] array_stack.pop();
+		FB_DELETE_ARRAY(array_stack.pop());
 	}
 	blob_stack.close();
 
@@ -794,7 +794,7 @@ void FUN_evaluate(thread_db* tdbb, UserFunction* function, jrd_nod* node, impure
 	catch (const Exception&)
 	{
 		while (array_stack.hasData()) {
-			delete[] array_stack.pop();
+			FB_DELETE_ARRAY(array_stack.pop());
 		}
 
 		throw;
@@ -1217,12 +1217,12 @@ static SLONG get_scalar_array(fun_repeat*	arg,
 		}
 		catch (const Exception&)
 		{
-			delete[] data;
-			delete[] temp;
+			FB_DELETE_ARRAY(data);
+			FB_DELETE_ARRAY(temp);
 			throw;
 		}
 
-		delete[] data;
+		FB_DELETE_ARRAY(data);
 		data = temp;
 	}
 

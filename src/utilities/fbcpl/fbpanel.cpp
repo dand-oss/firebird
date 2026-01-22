@@ -123,7 +123,7 @@ LONG CFBPanel::OnDblclk(HWND hwndCPl, UINT /*uAppNum*/, LONG /*lData*/)
 				}
 /**/
 			}
-			delete[] (char*) VersionInfo;
+			FB_DELETE_ARRAY((char*) VersionInfo);
 
 			// Show the dialog box
 			if (dlg.DoModal() != IDOK)

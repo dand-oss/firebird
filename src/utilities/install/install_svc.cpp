@@ -582,7 +582,7 @@ static USHORT svc_query_ex(SC_HANDLE manager)
 			&pcbBytesNeeded, &lpServicesReturned, &lpResumeHandle);
 
 		if (lpServicesReturned == 0)
-			delete[] service_data;
+			FB_DELETE_ARRAY(service_data);
 		else
 		{
 			Firebird::string serverServiceName;
@@ -599,7 +599,7 @@ static USHORT svc_query_ex(SC_HANDLE manager)
 				}
 			}
 
-			delete[] service_data;
+			FB_DELETE_ARRAY(service_data);
 
 			if ( firebirdServicesInstalled )
 				rc = FB_SUCCESS;
@@ -695,7 +695,7 @@ static void svc_query(const char* name, const char* display_name, SC_HANDLE mana
 		else
 			svc_error(GetLastError(), "QueryServiceConfig", NULL);
 
-		delete[] (UCHAR*) qsc;
+		FB_DELETE_ARRAY((UCHAR*) qsc);
 
 		CloseServiceHandle(service);
 	}

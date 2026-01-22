@@ -34,7 +34,7 @@ void Extender::alloc(size_t n)
 {
 	if (m_size < n)
 	{
-		delete[] m_buf;
+		FB_DELETE_ARRAY(m_buf);
 
 		m_buf = new char[m_size = n];
 		m_buf[0] = 0;
@@ -104,7 +104,7 @@ void Extender::grow(size_t n)
 		m_pos = m_buf + old_pos; // Reposition the current insertion point.
 		m_pos[0] = 0; // Same as alloc().
 
-		delete[] old_buf;
+		FB_DELETE_ARRAY(old_buf);
 	}
 }
 

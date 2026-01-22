@@ -405,7 +405,7 @@ void Stream::clear()
 	{
 		segments = segment->next;
 		if (segment != &first)
-			delete[] (char*) segment;
+			FB_DELETE_ARRAY((char*) segment);
 	}
 
 	current = NULL;
@@ -587,7 +587,7 @@ void Stream::truncate(int length)
 			while ((segment = current->next) != nullptr)
 			{
 				current->next = segment->next;
-				delete[] (char*) segment; // Was deallocation bug
+				FB_DELETE_ARRAY((char*) segment); // Was deallocation bug
 			}
 			return;
 		}

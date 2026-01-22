@@ -1183,7 +1183,7 @@ int gstat(Firebird::UtilSvc* uSvc)
 		dba_mem* alloced = tddba->head_of_mem_list;
 		while (alloced != 0)
 		{
-			delete[] alloced->memory;
+			FB_DELETE_ARRAY(alloced->memory);
 			alloced = alloced->mem_next;
 		}
 

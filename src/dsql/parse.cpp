@@ -18732,16 +18732,16 @@ void Parser::yyMoreStack(yyparsestate* yyps)
   Yshort  *tss = yyps->ss;
   YYSTYPE *tvs = yyps->vs;
   YYPOSN  *tps = yyps->ps;
-  yyps->ss = new Yshort [yyps->stacksize + YYSTACKGROWTH];   
-  yyps->vs = new YYSTYPE[yyps->stacksize + YYSTACKGROWTH];  
-  yyps->ps = new YYPOSN [yyps->stacksize + YYSTACKGROWTH];  
+  yyps->ss = FB_NEW_ARRAY(Yshort, yyps->stacksize + YYSTACKGROWTH);
+  yyps->vs = FB_NEW_ARRAY(YYSTYPE, yyps->stacksize + YYSTACKGROWTH);
+  yyps->ps = FB_NEW_ARRAY(YYPOSN, yyps->stacksize + YYSTACKGROWTH);  
   memcpy(yyps->ss, tss, yyps->stacksize * sizeof(Yshort));  
   yySCopy(yyps->vs, tvs, yyps->stacksize);
   yyPCopy(yyps->ps, tps, yyps->stacksize);
   yyps->stacksize += YYSTACKGROWTH;
-  delete[] tss;
-  delete[] tvs;
-  delete[] tps;
+  FB_DELETE_ARRAY(tss);
+  FB_DELETE_ARRAY(tvs);
+  FB_DELETE_ARRAY(tps);
   yyps->ssp = yyps->ss + p;                                   
   yyps->vsp = yyps->vs + p;                                   
   yyps->psp = yyps->ps + p;                                   
@@ -18752,9 +18752,9 @@ Parser::yyparsestate* Parser::yyNewState(int size)
 {
   yyparsestate *p = new yyparsestate;
   p->stacksize = size + 4;
-  p->ss = new Yshort [size + 4];
-  p->vs = new YYSTYPE[size + 4];
-  p->ps = new YYPOSN [size + 4];
+  p->ss = FB_NEW_ARRAY(Yshort, size + 4);
+  p->vs = FB_NEW_ARRAY(YYSTYPE, size + 4);
+  p->ps = FB_NEW_ARRAY(YYPOSN, size + 4);
   memset(&p->vs[0], 0, (size + 4) * sizeof(YYSTYPE));
   memset(&p->ps[0], 0, (size + 4) * sizeof(YYPOSN));
   return p;
@@ -18763,9 +18763,9 @@ Parser::yyparsestate* Parser::yyNewState(int size)
 
 void Parser::yyFreeState(Parser::yyparsestate* p)
 {
-  delete[] p->ss;
-  delete[] p->vs;
-  delete[] p->ps;
+  FB_DELETE_ARRAY(p->ss);
+  FB_DELETE_ARRAY(p->vs);
+  FB_DELETE_ARRAY(p->ps);
   delete p;
 }
 
@@ -18888,11 +18888,11 @@ int Parser::parseAux()
       if (!yyps->save) {
         // If this is a first conflict in the stack, start saving lexemes
         if (!yylexemes) {
-          yylexemes = new Yshort[YYSTACKGROWTH];
-          yylvals = new YYSTYPE[YYSTACKGROWTH];
-          yylvlim = yylvals + YYSTACKGROWTH; 
-          yylpsns = new YYPOSN[YYSTACKGROWTH];
-          yylplim = yylpsns + YYSTACKGROWTH; 
+          yylexemes = FB_NEW_ARRAY(Yshort, YYSTACKGROWTH);
+          yylvals = FB_NEW_ARRAY(YYSTYPE, YYSTACKGROWTH);
+          yylvlim = yylvals + YYSTACKGROWTH;
+          yylpsns = FB_NEW_ARRAY(YYPOSN, YYSTACKGROWTH);
+          yylplim = yylpsns + YYSTACKGROWTH;
         }
         if (yylvp == yylve) {
           yylvp = yylve = yylvals;
@@ -23580,18 +23580,18 @@ int Parser::yyexpand()
   int p = yylvp - yylvals;
   int s = yylvlim - yylvals;
   s += YYSTACKGROWTH;
-  { Yshort  *tl = yylexemes; 
+  { Yshort  *tl = yylexemes;
     YYSTYPE *tv = yylvals;
     YYPOSN  *tp = yylpsns;
-    yylvals = new YYSTYPE[s];
-    yylpsns = new YYPOSN[s];
-    yylexemes = new Yshort[s];
+    yylvals = FB_NEW_ARRAY(YYSTYPE, s);
+    yylpsns = FB_NEW_ARRAY(YYPOSN, s);
+    yylexemes = FB_NEW_ARRAY(Yshort, s);
     memcpy(yylexemes, tl, (s - YYSTACKGROWTH) * sizeof(Yshort));
     yySCopy(yylvals, tv, s - YYSTACKGROWTH);
     yyPCopy(yylpsns, tp, s - YYSTACKGROWTH);
-    delete[] tl;
-    delete[] tv;
-    delete[] tp;
+    FB_DELETE_ARRAY(tl);
+    FB_DELETE_ARRAY(tv);
+    FB_DELETE_ARRAY(tp);
   }
   yylvp = yylve = yylvals + p;
   yylvlim = yylvals + s;
