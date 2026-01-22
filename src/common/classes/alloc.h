@@ -546,16 +546,12 @@ using Firebird::MemoryPool;
 inline static MemoryPool* getDefaultMemoryPool() { return Firebird::MemoryPool::processMemoryPool; }
 
 // operators new and delete
-// In USE_SYSTEM_MALLOC mode, do NOT declare/override global operators.
-// This avoids ASAN alloc-dealloc-mismatch when Firebird is a shared library.
-// Run with ASAN_OPTIONS=alloc_dealloc_mismatch=0 to suppress warnings.
-#ifndef USE_SYSTEM_MALLOC
+// Both modes declare the same operators; definitions are in alloc.cpp
 void* operator new(size_t s) THROW_BAD_ALLOC;
 void* operator new[](size_t s) THROW_BAD_ALLOC;
 
 void operator delete(void* mem) throw();
 void operator delete[](void* mem) throw();
-#endif
 
 inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
