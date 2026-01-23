@@ -200,6 +200,12 @@ install(FILES ${AUTOCONFIG}
     DESTINATION include/firebird/gen
 )
 
+# Install ibase.h (legacy API header from jrd)
+install(FILES ${CMAKE_SOURCE_DIR}/src/jrd/ibase.h
+    DESTINATION include/firebird
+)
+
+
 ################################################################################
 # SUMMARY
 ################################################################################
