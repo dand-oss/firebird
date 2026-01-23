@@ -199,11 +199,26 @@ install(DIRECTORY ${CMAKE_SOURCE_DIR}/src/include/
 install(FILES ${AUTOCONFIG}
     DESTINATION include/firebird/gen
 )
-
-# Install ibase.h (legacy API header from jrd)
-install(FILES ${CMAKE_SOURCE_DIR}/src/jrd/ibase.h
-    DESTINATION include/firebird
+# Install ibase.h and its dependencies maintaining directory structure
+# ibase.h uses relative includes like "../jrd/dsc_pub.h" so we need proper structure
+install(FILES
+    ${CMAKE_SOURCE_DIR}/src/jrd/ibase.h
+    ${CMAKE_SOURCE_DIR}/src/jrd/dsc_pub.h
+    ${CMAKE_SOURCE_DIR}/src/jrd/inf_pub.h
+    ${CMAKE_SOURCE_DIR}/src/jrd/blr.h
+    DESTINATION include/firebird/jrd
 )
+
+install(FILES
+    ${CMAKE_SOURCE_DIR}/src/dsql/sqlda_pub.h
+    DESTINATION include/firebird/dsql
+)
+
+install(FILES
+    ${CMAKE_SOURCE_DIR}/src/include/gen/iberror.h
+    DESTINATION include/firebird/jrd
+)
+
 
 
 ################################################################################

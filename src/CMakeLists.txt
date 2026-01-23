@@ -339,7 +339,9 @@ set_target_properties(fbclient2 PROPERTIES EXPORT_NAME fbclient)
 # Add interface include directories for downstream consumers
 target_include_directories(fbclient2 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/jrd>
     $<INSTALL_INTERFACE:include/firebird>
+    $<INSTALL_INTERFACE:include/firebird/jrd>
 )
 
 ########################################
@@ -685,7 +687,9 @@ set_target_properties(fbembed2 PROPERTIES
 # Add interface include directories for downstream consumers (same API as fbclient)
 target_include_directories(fbembed2 PUBLIC
     $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/include>
+    $<BUILD_INTERFACE:${CMAKE_SOURCE_DIR}/src/jrd>
     $<INSTALL_INTERFACE:include/firebird>
+    $<INSTALL_INTERFACE:include/firebird/jrd>
 )
 
 set_output_directory_unix(fbembed2 lib)
