@@ -33,8 +33,8 @@
 #include <cstdio>  // for fprintf
 #include "../common/classes/alloc.h"
 
-// Add distinctive marker to trace if this code is being executed
-#define ALLOC_LOG(fmt, ...) fprintf(stderr, "[FB2_TRACE_V2] " fmt "\n", ##__VA_ARGS__)
+// Debug trace macro - disabled for production
+#define ALLOC_LOG(fmt, ...) do {} while(0)
 #include "../common/classes/fb_tls.h"
 #include "../jrd/gdsassert.h"
 #ifdef HAVE_MMAP
