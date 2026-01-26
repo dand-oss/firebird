@@ -621,8 +621,8 @@ void SORT_fini(sort_context* scb)
 		{
 			scb->scb_runs = run->run_next;
 			if (run->run_buff_alloc)
-				delete (UCHAR*) run->run_buffer;
-			delete run;
+				scb->scb_owner->getPool().deallocate(run->run_buffer);
+			scb->scb_owner->getPool().deallocate(run);
 		}
 
 		// Clean up the free runs also
@@ -631,11 +631,11 @@ void SORT_fini(sort_context* scb)
 		{
 			scb->scb_free_runs = run->run_next;
 			if (run->run_buff_alloc)
-				delete (UCHAR*) run->run_buffer;
-			delete run;
+				scb->scb_owner->getPool().deallocate(run->run_buffer);
+			scb->scb_owner->getPool().deallocate(run);
 		}
 
-		delete scb->scb_merge_pool;
+		scb->scb_owner->getPool().deallocate(scb->scb_merge_pool);
 
 		scb->scb_owner->getPool().deallocate(scb);
 	}
@@ -1123,7 +1123,7 @@ void SORT_sort(thread_db* tdbb, sort_context* scb)
 			}
 			catch (const BadAlloc&)
 			{
-				delete streams;
+				scb->scb_owner->getPool().deallocate(streams);
 				throw;
 			}
 		}
@@ -1176,7 +1176,7 @@ void SORT_sort(thread_db* tdbb, sort_context* scb)
 			count = m2 - streams;
 		}
 
-		delete streams;
+		scb->scb_owner->getPool().deallocate(streams);
 
 		merge->mrg_header.rmh_parent = NULL;
 		scb->scb_merge = merge;
