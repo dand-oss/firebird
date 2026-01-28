@@ -58,7 +58,7 @@ public:
 			if (cs) {
 #ifdef USE_SYSTEM_MALLOC
 				cs->~CharSet();
-				free(cs);
+				::operator delete(cs);
 #else
 				delete cs;
 #endif

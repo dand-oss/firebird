@@ -47,7 +47,7 @@ namespace Firebird
 			{
 #ifdef USE_SYSTEM_MALLOC
 				this->~RefCounted();
-				free(this);
+				::operator delete(this);  // Match ::operator new from alloc.h
 #else
 				delete this;
 #endif

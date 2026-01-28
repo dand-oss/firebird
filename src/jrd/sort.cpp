@@ -218,13 +218,13 @@ inline void releaseBuffer(sort_context* scb)
 	const size_t MAX_CACHED_SORT_BUFFERS = 8; // 1MB
 	Database* const dbb = scb->scb_dbb;
 
-	if (scb->scb_size_memory == MAX_SORT_BUFFER_SIZE && 
+	if (scb->scb_size_memory == MAX_SORT_BUFFER_SIZE &&
 		dbb->dbb_sort_buffers.getCount() < MAX_CACHED_SORT_BUFFERS)
 	{
 		dbb->dbb_sort_buffers.push(scb->scb_memory);
 	}
 	else
-		free(scb->scb_memory);
+		::operator delete(scb->scb_memory);
 }
 
 

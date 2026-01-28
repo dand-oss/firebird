@@ -53,11 +53,11 @@ Base::Base(ISC_STATUS k, ISC_STATUS c) :
 Base::~Base()
 {
 #ifdef USE_SYSTEM_MALLOC
-	// When using system malloc, pool-placement new uses malloc,
-	// so we must use free() to match (not operator delete)
+	// When using system malloc, pool-placement new uses operator new,
+	// so we must use operator delete to match
 	if (implementation) {
 		implementation->~ImplBase();
-		free(implementation);
+		::operator delete(implementation);
 	}
 #else
 	delete implementation;

@@ -473,8 +473,8 @@ public:
 	    if (block)
 		{
 #ifdef USE_SYSTEM_MALLOC
-			// Use free() to match malloc() in allocate_nothrow for ASAN compatibility
-			free(block);
+			// Use operator delete to match operator new in allocate_nothrow
+			::operator delete(block);
 #else
 			((MemoryBlock*) ((char*) block - MEM_ALIGN(sizeof(MemoryBlock))))->mbk_pool->deallocate(block);
 #endif
@@ -556,12 +556,10 @@ void operator delete[](void* mem) throw();
 inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
 #ifdef USE_SYSTEM_MALLOC
-	// Use malloc to match free() calls in Firebird code (ASAN compatibility)
+	// Delegate to global operator new for ASAN compatibility
+	// ASAN wraps global new/delete, so we must use them consistently
 	(void)pool;  // unused when bypassing pool
-	void* mem = malloc(s);
-	if (!mem)
-		throw std::bad_alloc();
-	return mem;
+	return ::operator new(s);
 #else
 	return pool.allocate(s ALLOC_PASS_ARGS);
 #endif
@@ -569,12 +567,10 @@ inline void* operator new(size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THR
 inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) THROW_BAD_ALLOC
 {
 #ifdef USE_SYSTEM_MALLOC
-	// Use malloc to match free() calls in Firebird code (ASAN compatibility)
+	// Delegate to global operator new[] for ASAN compatibility
+	// ASAN wraps global new/delete, so we must use them consistently
 	(void)pool;  // unused when bypassing pool
-	void* mem = malloc(s);
-	if (!mem)
-		throw std::bad_alloc();
-	return mem;
+	return ::operator new[](s);
 #else
 	return pool.allocate(s ALLOC_PASS_ARGS);
 #endif
@@ -583,8 +579,9 @@ inline void* operator new[](size_t s, Firebird::MemoryPool& pool ALLOC_PARAMS) T
 inline void operator delete(void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
 #ifdef USE_SYSTEM_MALLOC
+	// Delegate to global operator delete for ASAN compatibility
 	(void)pool;  // unused when bypassing pool
-	free(mem);
+	::operator delete(mem);
 #else
 	MemoryPool::globalFree(mem);
 #endif
@@ -592,8 +589,9 @@ inline void operator delete(void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) 
 inline void operator delete[](void* mem, Firebird::MemoryPool& pool ALLOC_PARAMS) throw()
 {
 #ifdef USE_SYSTEM_MALLOC
+	// Delegate to global operator delete[] for ASAN compatibility
 	(void)pool;  // unused when bypassing pool
-	free(mem);
+	::operator delete[](mem);
 #else
 	MemoryPool::globalFree(mem);
 #endif
@@ -627,32 +625,15 @@ inline void operator delete[](void* mem ALLOC_PARAMS) throw()
 #endif // DEBUG_GDS_ALLOC
 
 // Allocation macro for arrays (pairs with FB_DELETE_ARRAY)
-#ifdef USE_SYSTEM_MALLOC
-	#define FB_NEW_ARRAY(type, count) static_cast<type*>(malloc((count) * sizeof(type)))
-#else
-	#define FB_NEW_ARRAY(type, count) new type[count]
-#endif
+// In USE_SYSTEM_MALLOC mode, use global new[]/delete[] for ASAN compatibility
+#define FB_NEW_ARRAY(type, count) new type[count]
 
 // Deallocation macro for pool-allocated arrays (matches FB_NEW allocation)
-#ifdef USE_SYSTEM_MALLOC
-	#define FB_DELETE_ARRAY(ptr) free(ptr)
-#else
-	#define FB_DELETE_ARRAY(ptr) delete[] (ptr)
-#endif
+#define FB_DELETE_ARRAY(ptr) delete[] (ptr)
 
 // Deallocation for pool-allocated single objects (matches FB_NEW allocation)
-#ifdef USE_SYSTEM_MALLOC
-template<typename T>
-inline void fb_delete(T* ptr) {
-	if (ptr) {
-		ptr->~T();
-		free(ptr);
-	}
-}
-#define FB_DELETE(ptr) fb_delete(ptr)
-#else
+// Use delete for ASAN compatibility (matches placement new using ::operator new)
 #define FB_DELETE(ptr) delete (ptr)
-#endif
 
 
 namespace Firebird

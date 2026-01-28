@@ -5609,10 +5609,10 @@ void Attachment::destroy(Attachment* const attachment)
 		pool->setStatsGroup(temp_stats);
 
 #ifdef USE_SYSTEM_MALLOC
-		// In ASAN builds, explicitly call destructor and free() to avoid
-		// alloc-dealloc-mismatch (malloc in FB_NEW vs operator delete)
+		// In ASAN builds, explicitly call destructor and operator delete
+		// to match operator new used in pool allocation
 		attachment->~Attachment();
-		free(attachment);
+		::operator delete(attachment);
 #else
 		delete attachment;
 #endif

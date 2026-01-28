@@ -176,8 +176,9 @@ void* MemoryPool::allocate_nothrow(size_t size, size_t /*upper_size*/
 	if (size == 0)
 		size = 1;
 
-	// Use malloc to match direct free() calls in Firebird code (ASAN compatibility)
-	void* mem = malloc(size);
+	// Use operator new so ASAN sees consistent new/delete pairs
+	// Our nothrow override uses malloc internally
+	void* mem = ::operator new(size, std::nothrow);
 	ALLOC_LOG("pool.allocate(%zu) = %p [malloc]", size, mem);
 	if (mem)
 		increment_usage(size);
@@ -204,9 +205,9 @@ void MemoryPool::deallocate(void* block)
 	if (!block)
 		return;
 
-	ALLOC_LOG("pool.deallocate(%p) [free]", block);
-	// Use free() to match malloc() allocation
-	free(block);
+	ALLOC_LOG("pool.deallocate(%p) [delete]", block);
+	// Use operator delete to match operator new in allocate_nothrow
+	::operator delete(block);
 }
 
 void* MemoryPool::calloc(size_t size ALLOC_PARAMS)
@@ -315,6 +316,35 @@ void operator delete(void* mem) throw()
 void operator delete[](void* mem) throw()
 {
 	free(mem);
+}
+
+// Nothrow versions - CRITICAL for ASAN compatibility
+// These must also use malloc/free to match the throwing versions
+void* operator new(size_t s, const std::nothrow_t&) noexcept
+{
+	return malloc(s);
+}
+void* operator new[](size_t s, const std::nothrow_t&) noexcept
+{
+	return malloc(s);
+}
+void operator delete(void* mem, const std::nothrow_t&) noexcept
+{
+	free(mem);
+}
+void operator delete[](void* mem, const std::nothrow_t&) noexcept
+{
+	free(mem);
+}
+
+// Sized delete versions (C++14) - delegate to regular delete for ASAN consistency
+void operator delete(void* mem, size_t) noexcept
+{
+	::operator delete(mem);  // Call regular delete, not free()
+}
+void operator delete[](void* mem, size_t) noexcept
+{
+	::operator delete[](mem);  // Call regular delete[], not free()
 }
 
 #else // USE_SYSTEM_MALLOC

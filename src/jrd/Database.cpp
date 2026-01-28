@@ -189,7 +189,7 @@ namespace Jrd
 		destroyIntlObjects();
 
 		while (dbb_sort_buffers.hasData())
-			free(dbb_sort_buffers.pop());
+			::operator delete(dbb_sort_buffers.pop());
 
 		fb_assert(dbb_pools[0] == dbb_permanent);
 		for (size_t i = 1; i < dbb_pools.getCount(); ++i)
