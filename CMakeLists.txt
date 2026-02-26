@@ -263,7 +263,9 @@ configure_file(${AUTOCONFIG_SRC} ${AUTOCONFIG} @ONLY)
 #
 ################################################################################
 
-add_definitions(-DDEV_BUILD)
+# DEV_BUILD only in Debug (matches vcxproj behavior)
+# Enables fb_assert, debug allocator, extra validation — inappropriate for Release
+add_compile_definitions($<$<CONFIG:Debug>:DEV_BUILD>)
 
 if (WIN32)
     set(OS_DIR win32)
