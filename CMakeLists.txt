@@ -267,6 +267,10 @@ configure_file(${AUTOCONFIG_SRC} ${AUTOCONFIG} @ONLY)
 # Enables fb_assert, debug allocator, extra validation — inappropriate for Release
 add_compile_definitions($<$<CONFIG:Debug>:DEV_BUILD>)
 
+# SuperServer architecture — matches vcxproj which defines this unconditionally
+# Affects page lock behavior (cch.cpp) and relative path expansion (isc_file.cpp)
+add_compile_definitions(SUPERSERVER)
+
 if (WIN32)
     set(OS_DIR win32)
     set(VERSION_RC ${CMAKE_SOURCE_DIR}/src/jrd/version.rc)
