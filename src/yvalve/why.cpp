@@ -121,7 +121,6 @@ static void fb5DbgTrace(const char* format, ...)
 
 	std::fprintf(stderr, "[FB5_YVALVE_DBG] %s\n", buffer);
 	std::fflush(stderr);
-	gds__log("[FB5_YVALVE_DBG] %s", buffer);
 }
 
 static unsigned long long fb5HandleValue(FB_API_HANDLE handle)
