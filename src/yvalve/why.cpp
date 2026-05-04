@@ -5616,24 +5616,49 @@ void YAttachment::destroy(unsigned dstrFlags)
 	fb5DbgTrace("YAttachment::destroy begin this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d dstrFlags=%u",
 		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount, dstrFlags);
 
+	unsigned cleanupIndex = 0;
+	fb5DbgTrace("YAttachment::destroy cleanup handlers begin this=%p count=%u",
+		this, (unsigned) cleanupHandlers.getCount());
 	for (CleanupCallback** handler = cleanupHandlers.begin();
 		 handler != cleanupHandlers.end();
 		 ++handler)
 	{
+		fb5DbgTrace("YAttachment::destroy cleanup handler begin this=%p index=%u handler=%p",
+			this, cleanupIndex, *handler);
 		(*handler)->cleanupCallbackFunction();
+		fb5DbgTrace("YAttachment::destroy cleanup handler returned this=%p index=%u handler=%p",
+			this, cleanupIndex, *handler);
+		++cleanupIndex;
 	}
 
 	cleanupHandlers.clear();
+	fb5DbgTrace("YAttachment::destroy cleanup handlers cleared this=%p", this);
 
 	unsigned childFlags = dstrFlags & ~(DF_KEEP_NEXT | DF_RELEASE);
+	fb5DbgTrace("YAttachment::destroy childRequests begin this=%p childFlags=%u", this, childFlags);
 	childRequests.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childRequests returned this=%p", this);
+	fb5DbgTrace("YAttachment::destroy childStatements begin this=%p childFlags=%u", this, childFlags);
 	childStatements.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childStatements returned this=%p", this);
+	fb5DbgTrace("YAttachment::destroy childIscStatements begin this=%p childFlags=%u", this, childFlags);
 	childIscStatements.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childIscStatements returned this=%p", this);
+	fb5DbgTrace("YAttachment::destroy childBlobs begin this=%p childFlags=%u", this, childFlags);
 	childBlobs.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childBlobs returned this=%p", this);
+	fb5DbgTrace("YAttachment::destroy childEvents begin this=%p childFlags=%u", this, childFlags);
 	childEvents.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childEvents returned this=%p", this);
+	fb5DbgTrace("YAttachment::destroy childTransactions begin this=%p childFlags=%u", this, childFlags);
 	childTransactions.destroy(childFlags);
+	fb5DbgTrace("YAttachment::destroy childTransactions returned this=%p", this);
 
+	fb5DbgTrace("YAttachment::destroy removeHandle begin this=%p handle=%llu",
+		this, fb5HandleValue(handle));
 	removeHandle(&attachments, handle);
+	fb5DbgTrace("YAttachment::destroy removeHandle returned this=%p handle=%llu",
+		this, fb5HandleValue(handle));
 
 	fb5DbgTrace("YAttachment::destroy before destroy2 this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d dstrFlags=%u",
 		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount, dstrFlags);
