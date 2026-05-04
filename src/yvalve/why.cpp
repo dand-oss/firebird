@@ -5660,7 +5660,7 @@ void YAttachment::destroy(unsigned dstrFlags)
 		this, fb5HandleValue(handle));
 
 	fb5DbgTrace("YAttachment::destroy before destroy2 this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d dstrFlags=%u",
-		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount, dstrFlags);
+		this, fb5HandleValue(handle), provider, dbPath.c_str(), enterCount, dstrFlags);
 
 	destroy2(dstrFlags);
 
