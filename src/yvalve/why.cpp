@@ -79,6 +79,9 @@
 #endif
 
 #include <functional>
+#include <cstdarg>
+#include <cstdio>
+#include <cstdint>
 
 using namespace Firebird;
 using namespace Why;
@@ -107,6 +110,28 @@ namespace Why {
 };
 
 namespace {
+
+static void fb5DbgTrace(const char* format, ...)
+{
+	char buffer[1024];
+	va_list args;
+	va_start(args, format);
+	std::vsnprintf(buffer, sizeof(buffer), format, args);
+	va_end(args);
+
+	std::fprintf(stderr, "[FB5_YVALVE_DBG] %s\n", buffer);
+	std::fflush(stderr);
+	gds__log("[FB5_YVALVE_DBG] %s", buffer);
+}
+
+static unsigned long long fb5HandleValue(FB_API_HANDLE handle)
+{
+#if defined(_LP64) || defined(__LP64__) || defined(__arch64__) || defined(_WIN64)
+	return (unsigned long long) handle;
+#else
+	return (unsigned long long) (std::uintptr_t) handle;
+#endif
+}
 
 static const struct {
 	int fac_code;
@@ -5588,6 +5613,9 @@ YAttachment::~YAttachment()
 
 void YAttachment::destroy(unsigned dstrFlags)
 {
+	fb5DbgTrace("YAttachment::destroy begin this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d dstrFlags=%u",
+		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount, dstrFlags);
+
 	for (CleanupCallback** handler = cleanupHandlers.begin();
 		 handler != cleanupHandlers.end();
 		 ++handler)
@@ -5607,17 +5635,28 @@ void YAttachment::destroy(unsigned dstrFlags)
 
 	removeHandle(&attachments, handle);
 
+	fb5DbgTrace("YAttachment::destroy before destroy2 this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d dstrFlags=%u",
+		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount, dstrFlags);
+
 	destroy2(dstrFlags);
+
+	fb5DbgTrace("YAttachment::destroy leave this=%p dstrFlags=%u", this, dstrFlags);
 }
 
 void YAttachment::shutdown()
 {
+	fb5DbgTrace("YAttachment::shutdown begin this=%p handle=%llu provider=%p dbPath='%s' enterCount=%d",
+		this, fb5HandleValue(getHandle()), provider, dbPath.c_str(), enterCount);
+
 	if (provider)
 	{
 		destroy(0);
 		PluginManagerInterfacePtr()->releasePlugin(provider);
 		provider = NULL;
 	}
+
+	fb5DbgTrace("YAttachment::shutdown leave this=%p provider=%p dbPath='%s' enterCount=%d",
+		this, provider, dbPath.c_str(), enterCount);
 }
 
 void YAttachment::getInfo(CheckStatusWrapper* status, unsigned int itemsLength,
@@ -6759,13 +6798,19 @@ static const SLONG SHUTDOWN_STEP = 2;
 
 void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, const int reason)
 {
+	fb5DbgTrace("Dispatcher::shutdown enter this=%p timeout=%u reason=%d shutdownStarted=%d dispCounter=%ld",
+		this, timeout, reason, shutdownStarted ? 1 : 0, (long) dispCounter.value());
+
 	// set "process exiting" state
 	if (reason == fb_shutrsn_emergency)
 		abortShutdown();
 
 	// can't syncronize with already killed threads, just exit
 	if (MasterInterfacePtr()->getProcessExiting())
+	{
+		fb5DbgTrace("Dispatcher::shutdown exit process exiting this=%p", this);
 		return;
+	}
 
 	// wait for other threads that were waiting for shutdown
 	// that should not take too long due to shutdown started bit
@@ -6778,7 +6823,10 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 	// atomically increase shutdownWaiters & check for SHUTDOWN_STARTED
 	SLONG state = (shutdownWaiters += SHUTDOWN_STEP);
 	if (state & SHUTDOWN_COMPLETE)
+	{
+		fb5DbgTrace("Dispatcher::shutdown exit already complete this=%p state=%ld", this, (long) state);
 		return;
+	}
 
 	try
 	{
@@ -6788,7 +6836,10 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 		MutexLockGuard guard(singleShutdown, FB_FUNCTION);
 
 		if (shutdownStarted)
+		{
+			fb5DbgTrace("Dispatcher::shutdown exit already started this=%p", this);
 			return;
+		}
 
 		StatusVector status(NULL);
 		CheckStatusWrapper statusWrapper(&status);
@@ -6834,7 +6885,11 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 
 			StatusVector status2(NULL);
 			CheckStatusWrapper statusWrapper2(&status2);
+			fb5DbgTrace("Dispatcher::shutdown provider shutdown begin provider=%p timeout=%u reason=%d",
+				provider, timeout, reason);
 			provider->shutdown(&statusWrapper2, timeout, reason);
+			fb5DbgTrace("Dispatcher::shutdown provider shutdown returned provider=%p status1=%ld",
+				provider, (long) status2[1]);
 
 			if (status2[1])
 				userStatus->setErrors(error.value());
@@ -6853,6 +6908,9 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 			hasThreads = false;
 
 			Stack<YService*, 64> svcStack;
+			unsigned svcSeen = 0;
+			unsigned svcQueued = 0;
+			unsigned svcBusy = 0;
 			{
 				WriteLockGuard sync(handleMappingLock, FB_FUNCTION);
 				GenericMap<Pair<NonPooled<isc_svc_handle, YService*> > >::Accessor accessor(&services);
@@ -6862,22 +6920,38 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 					do
 					{
 						YService* service = accessor.current()->second;
+						++svcSeen;
+						fb5DbgTrace("Dispatcher::shutdown service seen service=%p handle=%llu enterCount=%d",
+							service, fb5HandleValue(service->getHandle()), service->enterCount);
 						if (service->enterCount)
+						{
+							++svcBusy;
 							hasThreads = true;
+						}
 						else
 						{
 							service->addRef();
 							svcStack.push(service);
+							++svcQueued;
+							fb5DbgTrace("Dispatcher::shutdown service queued service=%p handle=%llu",
+								service, fb5HandleValue(service->getHandle()));
 						}
 					} while (accessor.getNext());
 				}
 			}
 
+			fb5DbgTrace("Dispatcher::shutdown services summary seen=%u queued=%u busy=%u hasThreads=%d",
+				svcSeen, svcQueued, svcBusy, hasThreads ? 1 : 0);
+
 			while (svcStack.hasData())
 			{
 				YService* service = svcStack.pop();
+				fb5DbgTrace("Dispatcher::shutdown service shutdown begin service=%p handle=%llu",
+					service, fb5HandleValue(service->getHandle()));
 				service->shutdown();
+				fb5DbgTrace("Dispatcher::shutdown service shutdown returned service=%p", service);
 				service->release();
+				fb5DbgTrace("Dispatcher::shutdown service release returned service=%p", service);
 			}
 
 			if (hasThreads)
@@ -6887,6 +6961,9 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 			}
 
 			Stack<YAttachment*, 64> attStack;
+			unsigned attSeen = 0;
+			unsigned attQueued = 0;
+			unsigned attBusy = 0;
 			{
 				WriteLockGuard sync(handleMappingLock, FB_FUNCTION);
 				GenericMap<Pair<NonPooled<isc_db_handle, YAttachment*> > >::Accessor accessor(&attachments);
@@ -6896,22 +6973,41 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 					do
 					{
 						YAttachment* attachment = accessor.current()->second;
+						++attSeen;
+						fb5DbgTrace("Dispatcher::shutdown attachment seen attachment=%p handle=%llu provider=%p dbPath='%s' enterCount=%d",
+							attachment, fb5HandleValue(attachment->getHandle()), attachment->provider,
+							attachment->dbPath.c_str(), attachment->enterCount);
 						if (attachment->enterCount)
+						{
+							++attBusy;
 							hasThreads = true;
+						}
 						else
 						{
 							attachment->addRef();
 							attStack.push(attachment);
+							++attQueued;
+							fb5DbgTrace("Dispatcher::shutdown attachment queued attachment=%p handle=%llu dbPath='%s'",
+								attachment, fb5HandleValue(attachment->getHandle()), attachment->dbPath.c_str());
 						}
 					} while (accessor.getNext());
 				}
 			}
 
+			fb5DbgTrace("Dispatcher::shutdown attachments summary seen=%u queued=%u busy=%u hasThreads=%d",
+				attSeen, attQueued, attBusy, hasThreads ? 1 : 0);
+
 			while (attStack.hasData())
 			{
 				YAttachment* attachment = attStack.pop();
+				fb5DbgTrace("Dispatcher::shutdown attachment shutdown begin attachment=%p handle=%llu provider=%p dbPath='%s'",
+					attachment, fb5HandleValue(attachment->getHandle()), attachment->provider,
+					attachment->dbPath.c_str());
 				attachment->shutdown();
+				fb5DbgTrace("Dispatcher::shutdown attachment shutdown returned attachment=%p provider=%p dbPath='%s'",
+					attachment, attachment->provider, attachment->dbPath.c_str());
 				attachment->release();
+				fb5DbgTrace("Dispatcher::shutdown attachment release returned attachment=%p", attachment);
 			}
 
 			PluginManager::deleteDelayed();
@@ -6931,15 +7027,19 @@ void Dispatcher::shutdown(CheckStatusWrapper* userStatus, unsigned int timeout, 
 		// At this step callbacks are welcome to exit (or take actions to make main thread do it).
 		if (ShutChain::run(fb_shut_exit, reason) != FB_SUCCESS)
 			userStatus->setErrors(error.value());
+
+		fb5DbgTrace("Dispatcher::shutdown leave body this=%p", this);
 	}
 	catch (const Exception& e)
 	{
+		fb5DbgTrace("Dispatcher::shutdown exception this=%p", this);
 		e.stuffException(userStatus);
 		iscLogStatus(NULL, userStatus);
 	}
 
 	// no more attempts to run shutdown code even in case of error
 	shutdownWaiters |= SHUTDOWN_COMPLETE;
+	fb5DbgTrace("Dispatcher::shutdown complete this=%p", this);
 }
 
 void Dispatcher::setDbCryptCallback(CheckStatusWrapper* status, ICryptKeyCallback* callback)
