@@ -899,7 +899,7 @@ UserFunction* FUN_lookup_function(thread_db* tdbb, const MetaName& name) //, boo
 
 			fun_repeat* tail = temp + /*Y.RDB$ARGUMENT_POSITION*/
 						  jrd_3.jrd_11;
-			tail->fun_mechanism = (FUN_T) /*Y.RDB$MECHANISM*/
+			tail->fun_mechanism = (SSHORT) /*Y.RDB$MECHANISM*/
 						      jrd_3.jrd_10;
 			count = MAX(count, /*Y.RDB$ARGUMENT_POSITION*/
 					   jrd_3.jrd_11);

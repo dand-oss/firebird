@@ -827,7 +827,7 @@ UserFunction* FUN_lookup_function(thread_db* tdbb, const MetaName& name) //, boo
 				REQUEST(irq_l_args) = request_arg;
 
 			fun_repeat* tail = temp + Y.RDB$ARGUMENT_POSITION;
-			tail->fun_mechanism = (FUN_T) Y.RDB$MECHANISM;
+			tail->fun_mechanism = (SSHORT) Y.RDB$MECHANISM;
 			count = MAX(count, Y.RDB$ARGUMENT_POSITION);
 			DSC_make_descriptor(&tail->fun_desc, Y.RDB$FIELD_TYPE,
 								Y.RDB$FIELD_SCALE, Y.RDB$FIELD_LENGTH,

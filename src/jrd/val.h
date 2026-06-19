@@ -86,7 +86,9 @@ enum FUN_T {
 struct fun_repeat
 {
 	DSC fun_desc;			/* Datatype info */
-	FUN_T fun_mechanism;	/* Passing mechanism */
+	SSHORT fun_mechanism;	/* Passing mechanism, signed RDB$MECHANISM (negative = FREE_IT).
+							   Was FUN_T, but the enum can't represent the FREE_IT sign,
+							   so every load tripped -fsanitize=enum. */
 };
 
 
