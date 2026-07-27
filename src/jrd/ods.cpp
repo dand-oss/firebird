@@ -78,7 +78,8 @@ ULONG pagesPerSCN(ULONG page_size)
 
 ULONG maxPagesPerSCN(ULONG page_size)
 {
-	return static_cast<ULONG>((page_size - offsetof(scns_page, scn_pages[0])) / sizeof(((scns_page*)NULL)->scn_pages));
+	return static_cast<ULONG>((page_size - offsetof(scns_page, scn_pages[0])) /
+		sizeof(scns_page::scn_pages));
 }
 
 ULONG transPerTIP(ULONG page_size)
@@ -89,7 +90,7 @@ ULONG transPerTIP(ULONG page_size)
 ULONG gensPerPage(ULONG page_size)
 {
 	return static_cast<ULONG>((page_size - offsetof(generator_page, gpg_values[0])) /
-		sizeof(((generator_page*) NULL)->gpg_values));
+		sizeof(generator_page::gpg_values));
 }
 
 ULONG dataPagesPerPP(ULONG page_size)
