@@ -7,7 +7,6 @@
 
 #include <../common/classes/fb_string.h>
 #include <../common/classes/array.h>
-#include <../jrd/ibase.h>
 
 #define SECURITY_WIN32
 

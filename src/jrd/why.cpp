@@ -64,6 +64,9 @@
 /* end DSQL-specific includes */
 
 #include "../jrd/why_proto.h"
+#include "../jrd/jrd_proto.h"
+#include "../remote/remote.h"
+#include "../remote/inter_proto.h"
 #include "../common/classes/alloc.h"
 #include "../common/classes/array.h"
 #include "../common/classes/fb_string.h"
@@ -1243,26 +1246,289 @@ extern "C" {
 
 static ISC_STATUS no_entrypoint(ISC_STATUS * user_status, ...);
 
-#ifdef SUPERCLIENT
-#define ENTRYPOINT(cur, rem)	ISC_STATUS rem(ISC_STATUS* user_status, ...);
-#else
-#define ENTRYPOINT(cur, rem)	ISC_STATUS rem(ISC_STATUS* user_status, ...), cur(ISC_STATUS* user_status, ...);
-#endif
-
-#include "../jrd/entry.h"
-
 static PTR entrypoints[PROC_count * SUBSYSTEMS] =
 {
-#define ENTRYPOINT(cur, rem)	rem,
+#define ENTRYPOINT(cur, rem)	reinterpret_cast<PTR>(rem),
 #include "../jrd/entry.h"
 
 #if !defined(SUPERCLIENT)
-#define ENTRYPOINT(cur, rem)	cur,
+#define ENTRYPOINT(cur, rem)	reinterpret_cast<PTR>(cur),
 #include "../jrd/entry.h"
 #endif
 };
 
 } // extern "C"
+
+template <typename BackendHandle, typename StoredHandle>
+static BackendHandle* backend_handle(StoredHandle* handle)
+{
+	return reinterpret_cast<BackendHandle*>(handle);
+}
+
+template <typename StoredHandle, typename BackendHandle>
+static void store_backend_handle(StoredHandle*& destination, BackendHandle* handle)
+{
+	destination = reinterpret_cast<StoredHandle*>(handle);
+}
+
+static ISC_STATUS dispatch_attach_database(int implementation, ISC_STATUS* status,
+	const TEXT* fileName, StoredAtt** handle, SSHORT dpbLength, const SCHAR* dpb)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteHandle = backend_handle<Rdb>(*handle);
+		const ISC_STATUS result =
+			REM_attach_database(status, fileName, &remoteHandle, dpbLength, dpb);
+		store_backend_handle(*handle, remoteHandle);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_attach_database(status, fileName, handle, dpbLength,
+		reinterpret_cast<const UCHAR*>(dpb));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_database_info(int implementation, ISC_STATUS* status,
+	StoredAtt** handle, SSHORT itemLength, const SCHAR* items,
+	SSHORT bufferLength, SCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteHandle = backend_handle<Rdb>(*handle);
+		const ISC_STATUS result = REM_database_info(status, &remoteHandle, itemLength,
+			reinterpret_cast<const UCHAR*>(items), bufferLength,
+			reinterpret_cast<UCHAR*>(buffer));
+		store_backend_handle(*handle, remoteHandle);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_database_info(status, handle, itemLength, items, bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_start_transaction(int implementation, ISC_STATUS* status,
+	StoredTra** transaction, StoredAtt** attachment, SSHORT tpbLength, const UCHAR* tpb)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_start_transaction(status, &remoteTransaction, 1,
+			&remoteAttachment, tpbLength, tpb);
+		store_backend_handle(*transaction, remoteTransaction);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_start_transaction(status, transaction, 1, attachment, tpbLength, tpb);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_allocate_statement(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredStm** statement)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result =
+			REM_allocate_statement(status, &remoteAttachment, &remoteStatement);
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_allocate_statement(status, attachment, statement);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_prepare(int implementation, ISC_STATUS* status,
+	StoredTra** transaction, StoredStm** statement, USHORT length, const TEXT* sql,
+	USHORT dialect, USHORT itemLength, const SCHAR* items,
+	USHORT bufferLength, SCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_prepare(status, &remoteTransaction, &remoteStatement,
+			length, sql, dialect, itemLength, reinterpret_cast<const UCHAR*>(items),
+			bufferLength, reinterpret_cast<UCHAR*>(buffer));
+		store_backend_handle(*transaction, remoteTransaction);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_prepare(status, transaction, statement, length, sql, dialect,
+		itemLength, items, bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_execute(int implementation, ISC_STATUS* status,
+	StoredTra** transaction, StoredStm** statement,
+	USHORT inBlrLength, const SCHAR* inBlr, USHORT inMsgType,
+	USHORT inMsgLength, SCHAR* inMsg, USHORT outBlrLength, SCHAR* outBlr,
+	USHORT outMsgType, USHORT outMsgLength, SCHAR* outMsg)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_execute2(status, &remoteTransaction, &remoteStatement,
+			inBlrLength, reinterpret_cast<const UCHAR*>(inBlr), inMsgType, inMsgLength,
+			reinterpret_cast<UCHAR*>(inMsg), outBlrLength, reinterpret_cast<UCHAR*>(outBlr),
+			outMsgType, outMsgLength, reinterpret_cast<UCHAR*>(outMsg));
+		store_backend_handle(*transaction, remoteTransaction);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_execute(status, transaction, statement, inBlrLength, inBlr,
+		inMsgType, inMsgLength, inMsg, outBlrLength, outBlr,
+		outMsgType, outMsgLength, outMsg);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_fetch(int implementation, ISC_STATUS* status,
+	StoredStm** statement, USHORT blrLength, SCHAR* blr,
+	USHORT msgType, USHORT msgLength, SCHAR* msg
+#ifdef SCROLLABLE_CURSORS
+	, USHORT direction, SLONG offset
+#endif
+	)
+{
+	if (implementation == 0)
+	{
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_fetch(status, &remoteStatement, blrLength,
+			reinterpret_cast<UCHAR*>(blr), msgType, msgLength,
+			reinterpret_cast<UCHAR*>(msg)
+#ifdef SCROLLABLE_CURSORS
+			, direction, offset
+#endif
+			);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_fetch(status, statement, blrLength, blr, msgType, msgLength, msg
+#ifdef SCROLLABLE_CURSORS
+		, direction, offset
+#endif
+		);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_free_statement(int implementation, ISC_STATUS* status,
+	StoredStm** statement, USHORT option)
+{
+	if (implementation == 0)
+	{
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_free_statement(status, &remoteStatement, option);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_free_statement(status, statement, option);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_rollback(int implementation, ISC_STATUS* status,
+	StoredTra** transaction)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_rollback_transaction(status, &remoteTransaction);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_rollback_transaction(status, transaction);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_commit(int implementation, ISC_STATUS* status,
+	StoredTra** transaction)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_commit_transaction(status, &remoteTransaction);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_commit_transaction(status, transaction);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_detach(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_detach_database(status, &remoteAttachment);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_detach_database(status, attachment);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_drop(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_drop_database(status, &remoteAttachment);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_drop_database(status, attachment);
+#else
+	return no_entrypoint(status);
+#endif
+}
 
 /* Information items for two phase commit */
 
@@ -1489,9 +1755,9 @@ ISC_STATUS API_ROUTINE GDS_ATTACH_DATABASE(ISC_STATUS* user_status,
 				continue;
 			}
 
-			if (!CALL(PROC_ATTACH_DATABASE, n) (ptr, expanded_filename.c_str(),
-												&handle, newDpb.getBufferLength(),
-												reinterpret_cast<const char*>(newDpb.getBuffer())))
+			if (!dispatch_attach_database(n, ptr, expanded_filename.c_str(),
+										 &handle, newDpb.getBufferLength(),
+										 reinterpret_cast<const char*>(newDpb.getBuffer())))
 			{
 				attachment = new CAttachment(handle, public_handle, n);
 				attachment->db_path = expanded_filename;
@@ -1522,7 +1788,7 @@ ISC_STATUS API_ROUTINE GDS_ATTACH_DATABASE(ISC_STATUS* user_status,
 	{
 		if (handle)
 		{
-			CALL(PROC_DETACH, n) (temp, &handle);
+			dispatch_detach(n, temp, &handle);
 		}
 		destroy(attachment);
 
@@ -1746,7 +2012,7 @@ ISC_STATUS API_ROUTINE GDS_COMMIT(ISC_STATUS * user_status,
 
 		if (transaction->implementation != SUBSYSTEMS) {
 			// Handle single transaction case
-			if (CALL(PROC_COMMIT, transaction->implementation) (status, &transaction->handle))
+			if (dispatch_commit(transaction->implementation, status, &transaction->handle))
 			{
 				return status[1];
 			}
@@ -1767,7 +2033,7 @@ ISC_STATUS API_ROUTINE GDS_COMMIT(ISC_STATUS * user_status,
 
 			for (sub = transaction->next; sub; sub = sub->next)
 			{
-				if (CALL(PROC_COMMIT, sub->implementation) (status, &sub->handle))
+				if (dispatch_commit(sub->implementation, status, &sub->handle))
 				{
 					return status[1];
 				}
@@ -2167,9 +2433,8 @@ ISC_STATUS API_ROUTINE GDS_DATABASE_INFO(ISC_STATUS* user_status,
 	{
 		Attachment attachment = translate<CAttachment>(handle);
 		YEntry entryGuard(status, attachment);
-		CALL(PROC_DATABASE_INFO, attachment->implementation) (status, &attachment->handle,
-															item_length, items,
-															buffer_length, buffer);
+		dispatch_database_info(attachment->implementation, status, &attachment->handle,
+			item_length, items, buffer_length, buffer);
 	}
 	catch (const Exception& e)
 	{
@@ -2258,7 +2523,10 @@ static ISC_STATUS detach_or_drop_database(ISC_STATUS * user_status, FB_API_HANDL
 
 		if (attachment->handle)
 		{
-			if (CALL(proc, attachment->implementation) (status, &attachment->handle) &&
+			const ISC_STATUS result = dropping ?
+				dispatch_drop(attachment->implementation, status, &attachment->handle) :
+				dispatch_detach(attachment->implementation, status, &attachment->handle);
+			if (result &&
 		    	status[1] != specCode)
 			{
 				return status[1];
@@ -2396,7 +2664,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_ALLOCATE(ISC_STATUS * user_status,
 		// check the statement handle to make sure it's NULL and then initialize it.
 		nullCheck(public_stmt_handle, isc_bad_stmt_handle);
 
-		if (CALL(PROC_DSQL_ALLOCATE, attachment->implementation) (status, &attachment->handle, &stmt_handle))
+		if (dispatch_allocate_statement(attachment->implementation, status,
+			&attachment->handle, &stmt_handle))
 		{
 			return status[1];
 		}
@@ -2409,7 +2678,7 @@ ISC_STATUS API_ROUTINE GDS_DSQL_ALLOCATE(ISC_STATUS * user_status,
 		if (attachment && stmt_handle)
 		{
 			*public_stmt_handle = 0;
-			CALL(PROC_DSQL_FREE, attachment->implementation) (status, &stmt_handle, DSQL_drop);
+			dispatch_free_statement(attachment->implementation, status, &stmt_handle, DSQL_drop);
 		}
 		e.stuff_exception(status);
 	}
@@ -2719,13 +2988,9 @@ ISC_STATUS API_ROUTINE GDS_DSQL_EXECUTE2_M(ISC_STATUS* user_status,
 			statement->checkPrepared();
 		}
 
-		CALL(PROC_DSQL_EXECUTE2, statement->implementation) (status,
-														     &handle,
-														     &statement->handle,
-														     in_blr_length, in_blr,
-														     in_msg_type, in_msg_length, in_msg,
-														     out_blr_length, out_blr,
-														     out_msg_type, out_msg_length, out_msg);
+		dispatch_execute(statement->implementation, status, &handle, &statement->handle,
+			in_blr_length, in_blr, in_msg_type, in_msg_length, in_msg,
+			out_blr_length, out_blr, out_msg_type, out_msg_length, out_msg);
 
 		if (!status[1])
 		{
@@ -3259,14 +3524,12 @@ ISC_STATUS API_ROUTINE GDS_DSQL_FETCH_M(ISC_STATUS* user_status,
 		statement->checkPrepared();
 
 		ISC_STATUS s =
-			CALL(PROC_DSQL_FETCH, statement->implementation) (status, &statement->handle,
-															  blr_length, blr,
-															  msg_type, msg_length, msg
+			dispatch_fetch(statement->implementation, status, &statement->handle,
+						   blr_length, blr, msg_type, msg_length, msg
 #ifdef SCROLLABLE_CURSORS
-															  ,
-															  (USHORT) 0, (ULONG) 1
+						   , (USHORT) 0, (ULONG) 1
 #endif // SCROLLABLE_CURSORS
-															  );
+						   );
 
 		if (s == 100 || s == 101)
 		{
@@ -3313,10 +3576,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_FETCH2_M(ISC_STATUS* user_status,
 		statement->checkPrepared();
 
 		ISC_STATUS s =
-			CALL(PROC_DSQL_FETCH, statement->implementation) (status, &statement->handle,
-															  blr_length, blr,
-															  msg_type, msg_length, msg,
-															  direction, offset);
+			dispatch_fetch(statement->implementation, status, &statement->handle,
+						   blr_length, blr, msg_type, msg_length, msg, direction, offset);
 
 		if (s == 100 || s == 101)
 		{
@@ -3354,7 +3615,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_FREE(ISC_STATUS* user_status,
 		Statement statement = translate<CStatement>(stmt_handle);
 		YEntry entryGuard(status, statement);
 
-		if (CALL(PROC_DSQL_FREE, statement->implementation) (status, &statement->handle, option))
+		if (dispatch_free_statement(statement->implementation, status,
+			&statement->handle, option))
 		{
 			return status[1];
 		}
@@ -3638,10 +3900,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_PREPARE_M(ISC_STATUS* user_status,
 			handle = transaction->handle;
 		}
 
-		if (CALL(PROC_DSQL_PREPARE, statement->implementation) (status, &handle, &statement->handle,
-																length, string, dialect,
-																item_length, items,
-																buffer_length, buffer))
+		if (dispatch_prepare(statement->implementation, status, &handle, &statement->handle,
+			length, string, dialect, item_length, items, buffer_length, buffer))
 		{
 			return status[1];
 		}
@@ -4455,7 +4715,7 @@ ISC_STATUS API_ROUTINE GDS_ROLLBACK(ISC_STATUS* user_status,
 
 		for (Transaction sub = transaction; sub; sub = sub->next)
 			if (sub->implementation != SUBSYSTEMS &&
-				CALL(PROC_ROLLBACK, sub->implementation) (status, &sub->handle))
+				dispatch_rollback(sub->implementation, status, &sub->handle))
 			{
 				if (!is_network_error(status) || (transaction->flags & HANDLE_TRANSACTION_limbo) )
 				{
@@ -4898,8 +5158,8 @@ ISC_STATUS API_ROUTINE GDS_START_MULTIPLE(ISC_STATUS* user_status,
 			attachment = translate<CAttachment>(vector->teb_database);
 			YEntry attGuard(status, attachment);
 
-			if (CALL(PROC_START_TRANSACTION, attachment->implementation) (status, &handle, 1,
-					&attachment->handle, vector->teb_tpb_length, vector->teb_tpb))
+			if (dispatch_start_transaction(attachment->implementation, status, &handle,
+				&attachment->handle, vector->teb_tpb_length, vector->teb_tpb))
 			{
 				status_exception::raise(status);
 			}
@@ -4932,7 +5192,7 @@ ISC_STATUS API_ROUTINE GDS_START_MULTIPLE(ISC_STATUS* user_status,
 			transaction = sub->next;
 			if (sub->handle)
 			{
-				CALL(PROC_ROLLBACK, sub->implementation) (temp, &sub->handle);
+				dispatch_rollback(sub->implementation, temp, &sub->handle);
 			}
 		}
 
@@ -4943,7 +5203,7 @@ ISC_STATUS API_ROUTINE GDS_START_MULTIPLE(ISC_STATUS* user_status,
 
 		if (handle && attachment)
 		{
-			CALL(PROC_ROLLBACK, attachment->implementation) (temp, &handle);
+			dispatch_rollback(attachment->implementation, temp, &handle);
 		}
 	}
 
@@ -6082,7 +6342,7 @@ ISC_STATUS API_ROUTINE fb_ping(ISC_STATUS* user_status, FB_API_HANDLE* db_handle
 			if (!attachment->status.getError()) {
 				attachment->status.save(status);
 			}
-			CALL(PROC_DETACH, attachment->implementation) (status, &attachment->handle);
+			dispatch_detach(attachment->implementation, status, &attachment->handle);
 			status_exception::raise(attachment->status.value());
 		}
 	}
