@@ -1535,13 +1535,13 @@ void PAG_init(thread_db* tdbb)
 	{
 		pageMgr.gensPerPage =
 			(dbb->dbb_page_size -
-			 OFFSETA(generator_page*, gpg_values)) / sizeof(((generator_page*) NULL)->gpg_values);
+			 OFFSETA(generator_page*, gpg_values)) / sizeof(generator_page::gpg_values);
 	}
 	else
 	{
 		pageMgr.gensPerPage =
 			(dbb->dbb_page_size -
-			 OFFSETA(pointer_page*, ppg_page)) / sizeof(((pointer_page*) NULL)->ppg_page);
+			 OFFSETA(pointer_page*, ppg_page)) / sizeof(pointer_page::ppg_page);
 	}
 
 
