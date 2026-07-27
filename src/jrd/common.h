@@ -52,6 +52,9 @@
 
 #include "firebird.h"
 
+#include <stddef.h>
+#include <type_traits>
+
 #ifdef HAVE_STDLIB_H
 #include <stdlib.h>
 #endif
@@ -757,8 +760,8 @@ struct ISC_TIMESTAMP
 
 #define JRD_BUGCHK 15			/* facility code for bugcheck messages */
 #ifndef OFFSET
-#define OFFSET(struct, fld)      ((size_t) &((struct) NULL)->fld)
-#define OFFSETA(struct, fld)     ((size_t) ((struct) NULL)->fld)
+#define OFFSET(struct, fld)      offsetof(std::remove_pointer<struct>::type, fld)
+#define OFFSETA(struct, fld)     offsetof(std::remove_pointer<struct>::type, fld)
 #endif
 
 #ifndef ODS_ALIGNMENT
