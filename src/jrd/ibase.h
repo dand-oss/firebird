@@ -862,6 +862,23 @@ ISC_STATUS ISC_EXPORT isc_dsql_execute_immediate_m(ISC_STATUS*,
 												   unsigned short,
 												   ISC_SCHAR*);
 
+ISC_STATUS ISC_EXPORT isc_dsql_exec_immed2_m(ISC_STATUS*,
+															 isc_db_handle*,
+															 isc_tr_handle*,
+															 unsigned short,
+															 const ISC_SCHAR*,
+															 unsigned short,
+															 unsigned short,
+															 ISC_SCHAR*,
+															 unsigned short,
+															 unsigned short,
+															 const ISC_SCHAR*,
+															 unsigned short,
+															 ISC_SCHAR*,
+															 unsigned short,
+															 unsigned short,
+															 ISC_SCHAR*);
+
 ISC_STATUS ISC_EXPORT isc_dsql_exec_immed3_m(ISC_STATUS*,
 											 isc_db_handle*,
 											 isc_tr_handle*,
@@ -1182,4 +1199,3 @@ int  ISC_EXPORT isc_get_client_minor_version ();
 #include "iberror.h"
 
 #endif /* JRD_IBASE_H */
-

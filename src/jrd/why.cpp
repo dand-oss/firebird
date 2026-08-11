@@ -63,6 +63,7 @@
 
 /* end DSQL-specific includes */
 
+#include "../jrd/ibase.h"
 #include "../jrd/why_proto.h"
 #include "../common/classes/alloc.h"
 #include "../common/classes/array.h"

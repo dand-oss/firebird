@@ -18415,7 +18415,7 @@ int Parser::yylexAux()
 					}
 				}
 
-				yylval = (dsql_nod*)(long) value;
+				yylval = (dsql_nod*)(IPTR) value;
 				return NUMBER;
 			} // integer value
 		}  // if (!hexerror)...
@@ -23600,4 +23600,3 @@ int Parser::yyexpand()
   yylexp = yylexemes + p;
   return 0;
 }
-
