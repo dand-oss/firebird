@@ -243,6 +243,8 @@ typedef struct paramvary {
 extern "C" {
 #endif
 
+#ifndef JRD_WHY_PROTO_H
+
 ISC_STATUS ISC_EXPORT isc_attach_database(ISC_STATUS*,
 										  short,
 										  const ISC_SCHAR*,
@@ -862,23 +864,6 @@ ISC_STATUS ISC_EXPORT isc_dsql_execute_immediate_m(ISC_STATUS*,
 												   unsigned short,
 												   ISC_SCHAR*);
 
-ISC_STATUS ISC_EXPORT isc_dsql_exec_immed2_m(ISC_STATUS*,
-															 isc_db_handle*,
-															 isc_tr_handle*,
-															 unsigned short,
-															 const ISC_SCHAR*,
-															 unsigned short,
-															 unsigned short,
-															 ISC_SCHAR*,
-															 unsigned short,
-															 unsigned short,
-															 const ISC_SCHAR*,
-															 unsigned short,
-															 ISC_SCHAR*,
-															 unsigned short,
-															 unsigned short,
-															 ISC_SCHAR*);
-
 ISC_STATUS ISC_EXPORT isc_dsql_exec_immed3_m(ISC_STATUS*,
 											 isc_db_handle*,
 											 isc_tr_handle*,
@@ -1167,6 +1152,8 @@ int  ISC_EXPORT isc_get_client_minor_version ();
 #ifdef __cplusplus
 }	/* extern "C" */
 #endif
+
+#endif /* JRD_WHY_PROTO_H */
 
 
 /***************************************************/
