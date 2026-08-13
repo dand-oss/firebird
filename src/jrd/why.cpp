@@ -1731,8 +1731,163 @@ static ISC_STATUS dispatch_seek_blob(int implementation, ISC_STATUS* status,
 #endif
 }
 
+static ISC_STATUS dispatch_cancel_events(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, SLONG* id)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_cancel_events(status, &remoteAttachment, id);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_cancel_events(status, reinterpret_cast<Jrd::Attachment**>(attachment), id);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_cancel_operation(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, USHORT kind)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_cancel_operation(status, &remoteAttachment, kind);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_cancel_operation(status, reinterpret_cast<Jrd::Attachment**>(attachment), kind);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
 static ISC_STATUS dispatch_commit_retaining(int implementation, ISC_STATUS* status,
-	StoredTra** transaction);
+	StoredTra** transaction)
+{
+	if (implementation == 0)
+	{
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_commit_retaining(status, &remoteTransaction);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_commit_retaining(status, reinterpret_cast<Jrd::jrd_tra**>(transaction));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_create_database(int implementation, ISC_STATUS* status,
+	const TEXT* fileName, StoredAtt** attachment, USHORT dpbLength, const UCHAR* dpb)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_create_database(status, fileName, &remoteAttachment,
+			static_cast<SSHORT>(dpbLength), reinterpret_cast<const SCHAR*>(dpb));
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_create_database(status, fileName,
+		reinterpret_cast<Jrd::Attachment**>(attachment), dpbLength, dpb);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_ddl(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredTra** transaction, USHORT length, const UCHAR* blr)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_ddl(status, &remoteAttachment, &remoteTransaction,
+			length, reinterpret_cast<const UCHAR*>(blr));
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_ddl(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+		reinterpret_cast<Jrd::jrd_tra**>(transaction), length,
+		reinterpret_cast<const SCHAR*>(blr));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_que_events(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, SLONG* id, SSHORT length, const UCHAR* events,
+	FPTR_EVENT_CALLBACK ast, void* arg)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		const ISC_STATUS result = REM_que_events(status, &remoteAttachment, id, length,
+			events, ast, arg);
+		store_backend_handle(*attachment, remoteAttachment);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_que_events(status, reinterpret_cast<Jrd::Attachment**>(attachment), id,
+		length, events, ast, arg);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_ping(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment)
+{
+	if (implementation == 0)
+	{
+		return no_entrypoint(status);
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_ping_attachment(status,
+		reinterpret_cast<Jrd::Attachment**>(attachment));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_compile(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredReq** request, SSHORT blrLength, const SCHAR* blr)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rrq* remoteRequest = backend_handle<Rrq>(*request);
+		const ISC_STATUS result = REM_compile_request(status, &remoteAttachment,
+			&remoteRequest, static_cast<USHORT>(blrLength),
+			reinterpret_cast<const UCHAR*>(blr));
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*request, remoteRequest);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_compile_request(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+		reinterpret_cast<Jrd::jrd_req**>(request), blrLength, blr);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
 
 /* Information items for two phase commit */
 
@@ -2102,7 +2257,7 @@ ISC_STATUS API_ROUTINE GDS_CANCEL_EVENTS(ISC_STATUS * user_status,
 	{
 		Attachment attachment = translate<CAttachment>(handle);
 		YEntry entryGuard(status, attachment);
-		CALL(PROC_CANCEL_EVENTS, attachment->implementation) (status, &attachment->handle, id);
+		dispatch_cancel_events(attachment->implementation, status, &attachment->handle, id);
 	}
 	catch (const Exception& e)
 	{
@@ -2137,9 +2292,8 @@ ISC_STATUS API_ROUTINE FB_CANCEL_OPERATION(ISC_STATUS * user_status,
 		MutexLockGuard guard(attachment->enterMutex);
 		if (attachment->enterCount || option != fb_cancel_raise)
 		{
-			CALL(PROC_CANCEL_OPERATION, attachment->implementation) (status,
-																	 &attachment->handle,
-																	 option);
+			dispatch_cancel_operation(attachment->implementation, status,
+			&attachment->handle, option);
 		}
 		else
 		{
@@ -2283,7 +2437,7 @@ ISC_STATUS API_ROUTINE GDS_COMMIT_RETAINING(ISC_STATUS * user_status,
 		for (Transaction sub = transaction; sub; sub = sub->next)
 		{
 			if (sub->implementation != SUBSYSTEMS &&
-				CALL(PROC_COMMIT_RETAINING, sub->implementation) (status, &sub->handle))
+				dispatch_commit_retaining(sub->implementation, status, &sub->handle))
 			{
 				return status[1];
 			}
@@ -2325,7 +2479,8 @@ ISC_STATUS API_ROUTINE GDS_COMPILE(ISC_STATUS* user_status,
 		YEntry entryGuard(status, attachment);
 		nullCheck(req_handle, isc_bad_req_handle);
 
-		if (CALL(PROC_COMPILE, attachment->implementation) (status, &attachment->handle, &rq, blr_length, blr))
+		if (dispatch_compile(attachment->implementation, status, &attachment->handle,
+			&rq, blr_length, blr))
 		{
 			return status[1];
 		}
@@ -2533,9 +2688,8 @@ ISC_STATUS API_ROUTINE GDS_CREATE_DATABASE(ISC_STATUS* user_status,
 				continue;
 			}
 
-			if (!CALL(PROC_CREATE_DATABASE, n) (ptr, expanded_filename.c_str(),
-												&handle, newDpb.getBufferLength(),
-												reinterpret_cast<const char*>(newDpb.getBuffer())))
+			if (!dispatch_create_database(n, ptr, expanded_filename.c_str(), &handle,
+				newDpb.getBufferLength(), newDpb.getBuffer()))
 			{
 #ifdef WIN_NT
             	// Now we can expand, the file exists
@@ -2569,7 +2723,7 @@ ISC_STATUS API_ROUTINE GDS_CREATE_DATABASE(ISC_STATUS* user_status,
   		e.stuff_exception(status);
 		if (handle)
 		{
-			CALL(PROC_DROP_DATABASE, n) (temp, &handle);
+			dispatch_drop(n, temp, &handle);
 		}
 
 		destroy(attachment);
@@ -2671,8 +2825,8 @@ ISC_STATUS API_ROUTINE GDS_DDL(ISC_STATUS* user_status,
 		YEntry entryGuard(status, attachment);
 		Transaction transaction = findTransaction(tra_handle, attachment);
 
-		CALL(PROC_DDL, attachment->implementation) (status, &attachment->handle, &transaction->handle,
-												  length, ddl);
+		dispatch_ddl(attachment->implementation, status, &attachment->handle,
+			&transaction->handle, length, ddl);
 	}
 	catch (const Exception& e)
 	{
@@ -4355,7 +4509,7 @@ ISC_STATUS API_ROUTINE GDS_GET_SLICE(ISC_STATUS* user_status,
 		YEntry entryGuard(status, attachment);
 		Transaction transaction = findTransaction(tra_handle, attachment);
 
-		CALL(PROC_GET_SLICE, attachment->implementation) (status, &attachment->handle,
+		dispatch_get_slice(attachment->implementation, status, &attachment->handle,
 			&transaction->handle, array_id, sdl_length, sdl, param_length, param,
 			slice_length, slice, return_length);
 	}
@@ -4572,7 +4726,7 @@ ISC_STATUS API_ROUTINE GDS_PUT_SLICE(ISC_STATUS* user_status,
 		YEntry entryGuard(status, attachment);
 		Transaction transaction = findTransaction(tra_handle, attachment);
 
-		CALL(PROC_PUT_SLICE, attachment->implementation) (status, &attachment->handle,
+		dispatch_put_slice(attachment->implementation, status, &attachment->handle,
 			&transaction->handle, array_id, sdl_length, sdl, param_length, param,
 			 slice_length, slice);
 	}
@@ -4610,7 +4764,7 @@ ISC_STATUS API_ROUTINE GDS_QUE_EVENTS(ISC_STATUS* user_status,
 		Attachment attachment = translate<CAttachment>(handle);
 		YEntry entryGuard(status, attachment);
 
-		CALL(PROC_QUE_EVENTS, attachment->implementation) (status, &attachment->handle,
+		dispatch_que_events(attachment->implementation, status, &attachment->handle,
 			id, length, events, ast, arg);
 	}
 	catch (const Exception& e)
@@ -6522,7 +6676,7 @@ ISC_STATUS API_ROUTINE fb_ping(ISC_STATUS* user_status, FB_API_HANDLE* db_handle
 		Attachment attachment = translate<CAttachment>(db_handle);
 		YEntry entryGuard(status, attachment);
 
-		if (CALL(PROC_PING, attachment->implementation) (status, &attachment->handle))
+		if (dispatch_ping(attachment->implementation, status, &attachment->handle))
 		{
 			if (!attachment->status.getError()) {
 				attachment->status.save(status);
