@@ -1079,9 +1079,6 @@ namespace
 } // anonymous namespace
 
 
-#define CALL(proc, handle)	(get_entrypoint(proc, handle))
-
-
 #define GDS_ATTACH_DATABASE		isc_attach_database
 #define GDS_BLOB_INFO			isc_blob_info
 #define GDS_CANCEL_BLOB			isc_cancel_blob
@@ -1379,7 +1376,7 @@ static ISC_STATUS dispatch_prepare(int implementation, ISC_STATUS* status,
 #endif
 }
 
-static ISC_STATUS dispatch_execute(int implementation, ISC_STATUS* status,
+static ISC_STATUS dispatch_execute2(int implementation, ISC_STATUS* status,
 	StoredTra** transaction, StoredStm** statement,
 	USHORT inBlrLength, const SCHAR* inBlr, USHORT inMsgType,
 	USHORT inMsgLength, SCHAR* inMsg, USHORT outBlrLength, SCHAR* outBlr,
@@ -1888,7 +1885,6 @@ static ISC_STATUS dispatch_compile(int implementation, ISC_STATUS* status,
 #endif
 }
 
-
 static ISC_STATUS dispatch_prepare_transaction(int implementation, ISC_STATUS* status,
 	StoredTra** transaction, USHORT length, const UCHAR* message)
 {
@@ -2149,6 +2145,179 @@ static ISC_STATUS dispatch_unwind(int implementation, ISC_STATUS* status,
 #endif
 }
 
+static ISC_STATUS dispatch_execute_immediate2(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredTra** transaction, USHORT length, const SCHAR* string,
+	USHORT dialect, USHORT inBlrLength, SCHAR* inBlr, USHORT inMsgType,
+	USHORT inMsgLength, const SCHAR* inMsg, USHORT outBlrLength, SCHAR* outBlr,
+	USHORT outMsgType, USHORT outMsgLength, SCHAR* outMsg)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_execute_immediate2(status, &remoteAttachment,
+			&remoteTransaction, length, string, dialect, inBlrLength,
+			reinterpret_cast<UCHAR*>(inBlr), inMsgType, inMsgLength,
+			const_cast<UCHAR*>(reinterpret_cast<const UCHAR*>(inMsg)), outBlrLength,
+			reinterpret_cast<UCHAR*>(outBlr), outMsgType, outMsgLength,
+			reinterpret_cast<UCHAR*>(outMsg));
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_execute_immediate(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+		reinterpret_cast<Jrd::jrd_tra**>(transaction), length, string, dialect,
+		inBlrLength, inBlr, inMsgType, inMsgLength, inMsg, outBlrLength, outBlr,
+		outMsgType, outMsgLength, outMsg);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_insert(int implementation, ISC_STATUS* status,
+	StoredStm** statement, USHORT blrLength, const SCHAR* blr, USHORT msgType,
+	USHORT msgLength, const SCHAR* msg)
+{
+	if (implementation == 0)
+	{
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_insert(status, &remoteStatement, blrLength,
+			reinterpret_cast<const UCHAR*>(blr), msgType, msgLength,
+			const_cast<UCHAR*>(reinterpret_cast<const UCHAR*>(msg)));
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_insert(status, reinterpret_cast<Jrd::dsql_req**>(statement), blrLength,
+		blr, msgType, msgLength, msg);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_set_cursor(int implementation, ISC_STATUS* status,
+	StoredStm** statement, const TEXT* cursor, USHORT type)
+{
+	if (implementation == 0)
+	{
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_set_cursor_name(status, &remoteStatement, cursor, type);
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_set_cursor(status, reinterpret_cast<Jrd::dsql_req**>(statement), cursor, type);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_sql_info(int implementation, ISC_STATUS* status,
+	StoredStm** statement, SSHORT itemLength, const SCHAR* items,
+	SSHORT bufferLength, SCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rsr* remoteStatement = backend_handle<Rsr>(*statement);
+		const ISC_STATUS result = REM_sql_info(status, &remoteStatement, itemLength,
+			reinterpret_cast<const UCHAR*>(items), bufferLength,
+			reinterpret_cast<UCHAR*>(buffer));
+		store_backend_handle(*statement, remoteStatement);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_sql_info(status, reinterpret_cast<Jrd::dsql_req**>(statement), itemLength,
+		items, bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_service_attach(int implementation, ISC_STATUS* status,
+	const TEXT* serviceName, StoredSvc** service, USHORT spbLength, const SCHAR* spb)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteService = backend_handle<Rdb>(*service);
+		const ISC_STATUS result = REM_service_attach(status, serviceName, &remoteService,
+			spbLength, reinterpret_cast<const UCHAR*>(spb));
+		store_backend_handle(*service, remoteService);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_service_attach(status, serviceName,
+		reinterpret_cast<Jrd::Service**>(service), spbLength, spb);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_service_detach(int implementation, ISC_STATUS* status,
+	StoredSvc** service)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteService = backend_handle<Rdb>(*service);
+		const ISC_STATUS result = REM_service_detach(status, &remoteService);
+		store_backend_handle(*service, remoteService);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_service_detach(status, reinterpret_cast<Jrd::Service**>(service));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_service_query(int implementation, ISC_STATUS* status,
+	StoredSvc** service, ULONG* reserved, USHORT itemLength, const SCHAR* items,
+	USHORT recvItemLength, const SCHAR* recvItems, USHORT bufferLength, SCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteService = backend_handle<Rdb>(*service);
+		const ISC_STATUS result = REM_service_query(status, &remoteService, reserved,
+			itemLength, reinterpret_cast<const UCHAR*>(items), recvItemLength,
+			reinterpret_cast<const UCHAR*>(recvItems), bufferLength,
+			reinterpret_cast<UCHAR*>(buffer));
+		store_backend_handle(*service, remoteService);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_service_query(status, reinterpret_cast<Jrd::Service**>(service), reserved,
+		itemLength, items, recvItemLength, recvItems, bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_service_start(int implementation, ISC_STATUS* status,
+	StoredSvc** service, ULONG* reserved, USHORT itemLength, const SCHAR* items)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteService = backend_handle<Rdb>(*service);
+		const ISC_STATUS result = REM_service_start(status, &remoteService, reserved,
+			itemLength, reinterpret_cast<const UCHAR*>(items));
+		store_backend_handle(*service, remoteService);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_service_start(status, reinterpret_cast<Jrd::Service**>(service), reserved,
+		itemLength, items);
+#else
+	return no_entrypoint(status);
+#endif
+}
 
 /* Information items for two phase commit */
 
@@ -3605,7 +3774,7 @@ ISC_STATUS API_ROUTINE GDS_DSQL_EXECUTE2_M(ISC_STATUS* user_status,
 			statement->checkPrepared();
 		}
 
-		dispatch_execute(statement->implementation, status, &handle, &statement->handle,
+		dispatch_execute2(statement->implementation, status, &handle, &statement->handle,
 			in_blr_length, in_blr, in_msg_type, in_msg_length, in_msg,
 			out_blr_length, out_blr, out_msg_type, out_msg_length, out_msg);
 
@@ -3959,13 +4128,10 @@ ISC_STATUS API_ROUTINE GDS_DSQL_EXEC_IMM3_M(ISC_STATUS* user_status,
 			handle = t->handle;
 		}
 
-		CALL(PROC_DSQL_EXEC_IMMED2, attachment->implementation) (status,
-														  &attachment->handle, &handle,
-														  length, string, dialect,
-														  in_blr_length, in_blr,
-														  in_msg_type, in_msg_length, in_msg,
-														  out_blr_length, out_blr,
-														  out_msg_type, out_msg_length, out_msg);
+		dispatch_execute_immediate2(attachment->implementation, status,
+			&attachment->handle, &handle, length, string, dialect,
+			in_blr_length, in_blr, in_msg_type, in_msg_length, in_msg,
+			out_blr_length, out_blr, out_msg_type, out_msg_length, out_msg);
 
 		if (!status[1])
 		{
@@ -4325,9 +4491,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_INSERT_M(ISC_STATUS* user_status,
 
 		statement->checkPrepared();
 
-		CALL(PROC_DSQL_INSERT, statement->implementation) (status, &statement->handle,
-														   blr_length, blr,
-														   msg_type, msg_length, msg);
+		dispatch_insert(statement->implementation, status, &statement->handle,
+			blr_length, blr, msg_type, msg_length, msg);
 	}
 	catch (const Exception& e)
 	{
@@ -4557,8 +4722,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_SET_CURSOR(ISC_STATUS* user_status,
 		Statement statement = translate<CStatement>(stmt_handle);
 		YEntry entryGuard(status, statement);
 
-		CALL(PROC_DSQL_SET_CURSOR, statement->implementation) (status, &statement->handle,
-															   cursor, type);
+		dispatch_set_cursor(statement->implementation, status, &statement->handle,
+			cursor, type);
 	}
 	catch (const Exception& e)
 	{
@@ -4614,10 +4779,8 @@ ISC_STATUS API_ROUTINE GDS_DSQL_SQL_INFO(ISC_STATUS* user_status,
 		}
 		else
 		{
-			CALL(PROC_DSQL_SQL_INFO, statement->implementation) (status,
-																 &statement->handle,
-																 item_length, items,
-																 buffer_length, buffer);
+			dispatch_sql_info(statement->implementation, status, &statement->handle,
+				item_length, items, buffer_length, buffer);
 		}
 	}
 	catch (const Exception& e)
@@ -4990,7 +5153,7 @@ ISC_STATUS API_ROUTINE GDS_PUT_SLICE(ISC_STATUS* user_status,
 
 		dispatch_put_slice(attachment->implementation, status, &attachment->handle,
 			&transaction->handle, array_id, sdl_length, sdl, param_length, param,
-			 slice_length, slice);
+			slice_length, slice);
 	}
 	catch (const Exception& e)
 	{
@@ -5486,7 +5649,7 @@ ISC_STATUS API_ROUTINE GDS_SERVICE_ATTACH(ISC_STATUS* user_status,
 				continue;
 			}
 
-			if (!CALL(PROC_SERVICE_ATTACH, n) (ptr, svcname.c_str(), &handle, spb_length, spb))
+			if (!dispatch_service_attach(n, ptr, svcname.c_str(), &handle, spb_length, spb))
 			{
 				service = new CService(handle, public_handle, n);
 				status[0] = isc_arg_gds;
@@ -5513,7 +5676,7 @@ ISC_STATUS API_ROUTINE GDS_SERVICE_ATTACH(ISC_STATUS* user_status,
 		e.stuff_exception(status);
 		if (handle)
 		{
-			CALL(PROC_SERVICE_DETACH, n) (temp, &handle);
+			dispatch_service_detach(n, temp, &handle);
 			*public_handle = 0;
 			destroy(service);
 		}
@@ -5542,7 +5705,7 @@ ISC_STATUS API_ROUTINE GDS_SERVICE_DETACH(ISC_STATUS* user_status, FB_API_HANDLE
 		YEntry entryGuard;
 		Service service = translate<CService>(handle);
 
-		if (CALL(PROC_SERVICE_DETACH, service->implementation) (status, &service->handle))
+		if (dispatch_service_detach(service->implementation, status, &service->handle))
 		{
 			return status[1];
 		}
@@ -5591,12 +5754,8 @@ ISC_STATUS API_ROUTINE GDS_SERVICE_QUERY(ISC_STATUS* user_status,
 		YEntry entryGuard;
 		Service service = translate<CService>(handle);
 
-		CALL(PROC_SERVICE_QUERY, service->implementation) (status,
-														   &service->handle,
-														   0,	/* reserved */
-														   send_item_length, send_items,
-														   recv_item_length, recv_items,
-														   buffer_length, buffer);
+		dispatch_service_query(service->implementation, status, &service->handle, 0,
+			send_item_length, send_items, recv_item_length, recv_items, buffer_length, buffer);
 	}
 	catch (const Exception& e)
 	{
@@ -5635,9 +5794,8 @@ ISC_STATUS API_ROUTINE GDS_SERVICE_START(ISC_STATUS* user_status,
 		YEntry entryGuard;
 		Service service = translate<CService>(handle);
 
-		CALL(PROC_SERVICE_START, service->implementation) (status, &service->handle,
-														   NULL,
-														   spb_length, spb);
+		dispatch_service_start(service->implementation, status, &service->handle, NULL,
+			spb_length, spb);
 	}
 	catch (const Exception& e)
 	{
@@ -6388,8 +6546,7 @@ static ISC_STATUS get_transaction_info(ISC_STATUS* user_status,
 
 		if (dispatch_transaction_info(transaction->implementation, status,
 			&transaction->handle, sizeof(prepare_tr_info),
-			reinterpret_cast<const SCHAR*>(prepare_tr_info),
-			sizeof(buffer), buffer))
+			reinterpret_cast<const SCHAR*>(prepare_tr_info), sizeof(buffer), buffer))
 		{
 			return status[1];
 		}
