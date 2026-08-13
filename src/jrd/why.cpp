@@ -854,7 +854,7 @@ static ISC_STATUS get_transaction_info(ISC_STATUS*, Transaction, TEXT**);
 static void iterative_sql_info(ISC_STATUS*, FB_API_HANDLE*, USHORT, const SCHAR*, SSHORT,
 							   SCHAR*, USHORT, XSQLDA*);
 static ISC_STATUS open_blob(ISC_STATUS*, FB_API_HANDLE*, FB_API_HANDLE*, FB_API_HANDLE*, SLONG*,
-						USHORT, const UCHAR*, SSHORT, SSHORT);
+						USHORT, const UCHAR*, bool);
 static ISC_STATUS prepare(ISC_STATUS *, Transaction);
 static void save_error_string(ISC_STATUS*);
 static bool set_path(const PathName&, PathName&);
@@ -1530,6 +1530,210 @@ static ISC_STATUS dispatch_drop(int implementation, ISC_STATUS* status,
 #endif
 }
 
+static ISC_STATUS dispatch_blob_info(int implementation, ISC_STATUS* status,
+	StoredBlb** blob, SSHORT itemLength, const SCHAR* items,
+	SSHORT bufferLength, SCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = REM_blob_info(status, &remoteBlob, itemLength,
+			reinterpret_cast<const UCHAR*>(items), bufferLength,
+			reinterpret_cast<UCHAR*>(buffer));
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_blob_info(status, reinterpret_cast<Jrd::blb**>(blob), itemLength,
+		items, bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_cancel_blob(int implementation, ISC_STATUS* status,
+	StoredBlb** blob)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = REM_cancel_blob(status, &remoteBlob);
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_cancel_blob(status, reinterpret_cast<Jrd::blb**>(blob));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_close_blob(int implementation, ISC_STATUS* status,
+	StoredBlb** blob)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = REM_close_blob(status, &remoteBlob);
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_close_blob(status, reinterpret_cast<Jrd::blb**>(blob));
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_open_blob2(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredTra** transaction, StoredBlb** blob,
+	SLONG* blobId, USHORT bpbLength, const UCHAR* bpb, bool create)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = create ?
+			REM_create_blob2(status, &remoteAttachment, &remoteTransaction, &remoteBlob,
+				reinterpret_cast<BID>(blobId), bpbLength, bpb) :
+			REM_open_blob2(status, &remoteAttachment, &remoteTransaction, &remoteBlob,
+				reinterpret_cast<BID>(blobId), bpbLength, bpb);
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*transaction, remoteTransaction);
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return create ?
+		jrd8_create_blob2(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+			reinterpret_cast<Jrd::jrd_tra**>(transaction),
+			reinterpret_cast<Jrd::blb**>(blob), reinterpret_cast<Jrd::bid*>(blobId),
+			bpbLength, bpb) :
+		jrd8_open_blob2(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+			reinterpret_cast<Jrd::jrd_tra**>(transaction),
+			reinterpret_cast<Jrd::blb**>(blob), reinterpret_cast<Jrd::bid*>(blobId),
+			bpbLength, bpb);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_get_segment(int implementation, ISC_STATUS* status,
+	StoredBlb** blob, USHORT* length, USHORT bufferLength, UCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = REM_get_segment(status, &remoteBlob, length,
+			bufferLength, buffer);
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_get_segment(status, reinterpret_cast<Jrd::blb**>(blob), length,
+		bufferLength, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_get_slice(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredTra** transaction, ISC_QUAD* arrayId,
+	USHORT sdlLength, const UCHAR* sdl, USHORT paramLength, const UCHAR* param,
+	SLONG sliceLength, UCHAR* slice, SLONG* returnLength)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_get_slice(status, &remoteAttachment,
+			&remoteTransaction, reinterpret_cast<BID>(arrayId), sdlLength, sdl,
+			paramLength, param, sliceLength, slice, returnLength);
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_get_slice(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+		reinterpret_cast<Jrd::jrd_tra**>(transaction), arrayId, sdlLength, sdl,
+		paramLength, param, sliceLength, slice, returnLength);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_put_segment(int implementation, ISC_STATUS* status,
+	StoredBlb** blob, USHORT length, const UCHAR* buffer)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS result = REM_put_segment(status, &remoteBlob, length, buffer);
+		store_backend_handle(*blob, remoteBlob);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_put_segment(status, reinterpret_cast<Jrd::blb**>(blob), length, buffer);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_put_slice(int implementation, ISC_STATUS* status,
+	StoredAtt** attachment, StoredTra** transaction, ISC_QUAD* arrayId,
+	USHORT sdlLength, const UCHAR* sdl, USHORT paramLength, const SLONG* param,
+	SLONG sliceLength, UCHAR* slice)
+{
+	if (implementation == 0)
+	{
+		Rdb* remoteAttachment = backend_handle<Rdb>(*attachment);
+		Rtr* remoteTransaction = backend_handle<Rtr>(*transaction);
+		const ISC_STATUS result = REM_put_slice(status, &remoteAttachment,
+			&remoteTransaction, reinterpret_cast<BID>(arrayId), sdlLength, sdl,
+			paramLength, reinterpret_cast<const UCHAR*>(param), sliceLength, slice);
+		store_backend_handle(*attachment, remoteAttachment);
+		store_backend_handle(*transaction, remoteTransaction);
+		return result;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_put_slice(status, reinterpret_cast<Jrd::Attachment**>(attachment),
+		reinterpret_cast<Jrd::jrd_tra**>(transaction), arrayId, sdlLength, sdl,
+		paramLength, reinterpret_cast<const UCHAR*>(param), sliceLength, slice);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_seek_blob(int implementation, ISC_STATUS* status,
+	StoredBlb** blob, SSHORT mode, SLONG offset, SLONG* result)
+{
+	if (implementation == 0)
+	{
+		Rbl* remoteBlob = backend_handle<Rbl>(*blob);
+		const ISC_STATUS code = REM_seek_blob(status, &remoteBlob, mode, offset, result);
+		store_backend_handle(*blob, remoteBlob);
+		return code;
+	}
+
+#ifndef SUPERCLIENT
+	return jrd8_seek_blob(status, reinterpret_cast<Jrd::blb**>(blob), mode, offset, result);
+#else
+	return no_entrypoint(status);
+#endif
+}
+
+static ISC_STATUS dispatch_commit_retaining(int implementation, ISC_STATUS* status,
+	StoredTra** transaction);
+
 /* Information items for two phase commit */
 
 static const UCHAR prepare_tr_info[] =
@@ -1822,9 +2026,8 @@ ISC_STATUS API_ROUTINE GDS_BLOB_INFO(ISC_STATUS*	user_status,
 	{
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
-		CALL(PROC_BLOB_INFO, blob->implementation) (status, &blob->handle,
-													item_length, items,
-													buffer_length, buffer);
+		dispatch_blob_info(blob->implementation, status, &blob->handle,
+			item_length, items, buffer_length, buffer);
 	}
 	catch (const Exception& e)
 	{
@@ -1864,7 +2067,7 @@ ISC_STATUS API_ROUTINE GDS_CANCEL_BLOB(ISC_STATUS * user_status,
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
 
-		if (! CALL(PROC_CANCEL_BLOB, blob->implementation) (status, &blob->handle))
+		if (!dispatch_cancel_blob(blob->implementation, status, &blob->handle))
 		{
 			destroy(blob);
 			*blob_handle = 0;
@@ -1972,7 +2175,7 @@ ISC_STATUS API_ROUTINE GDS_CLOSE_BLOB(ISC_STATUS * user_status,
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
 
-		if (CALL(PROC_CLOSE_BLOB, blob->implementation) (status, &blob->handle))
+		if (dispatch_close_blob(blob->implementation, status, &blob->handle))
 		{
 			return status[1];
 		}
@@ -2197,7 +2400,7 @@ ISC_STATUS API_ROUTINE GDS_CREATE_BLOB(ISC_STATUS* user_status,
  **************************************/
 
 	return open_blob(user_status, db_handle, tra_handle, blob_handle, blob_id,
-					 0, 0, PROC_CREATE_BLOB, PROC_CREATE_BLOB2);
+					 0, 0, true);
 }
 
 
@@ -2221,8 +2424,7 @@ ISC_STATUS API_ROUTINE GDS_CREATE_BLOB2(ISC_STATUS* user_status,
  **************************************/
 
 	return open_blob(user_status, db_handle, tra_handle, blob_handle, blob_id,
-					 bpb_length, bpb, PROC_CREATE_BLOB,
-					 PROC_CREATE_BLOB2);
+					 bpb_length, bpb, true);
 }
 
 
@@ -4106,10 +4308,8 @@ ISC_STATUS API_ROUTINE GDS_GET_SEGMENT(ISC_STATUS* user_status,
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
 
-		ISC_STATUS code =
-			CALL(PROC_GET_SEGMENT, blob->implementation) (status, &blob->handle,
-														  length,
-														  buffer_length, buffer);
+		ISC_STATUS code = dispatch_get_segment(blob->implementation, status, &blob->handle,
+			length, buffer_length, buffer);
 
 		if (code == isc_segstr_eof || code == isc_segment)
 		{
@@ -4221,7 +4421,7 @@ ISC_STATUS API_ROUTINE GDS_OPEN_BLOB(ISC_STATUS* user_status,
  **************************************/
 
 	return open_blob(user_status, db_handle, tra_handle, blob_handle, blob_id,
-					 0, 0, PROC_OPEN_BLOB, PROC_OPEN_BLOB2);
+					 0, 0, false);
 }
 
 
@@ -4245,7 +4445,7 @@ ISC_STATUS API_ROUTINE GDS_OPEN_BLOB2(ISC_STATUS* user_status,
  **************************************/
 
 	return open_blob(user_status, db_handle, tra_handle, blob_handle, blob_id,
-					 bpb_length, bpb, PROC_OPEN_BLOB, PROC_OPEN_BLOB2);
+					 bpb_length, bpb, false);
 }
 
 
@@ -4332,7 +4532,7 @@ ISC_STATUS API_ROUTINE GDS_PUT_SEGMENT(ISC_STATUS* user_status,
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
 
-		CALL(PROC_PUT_SEGMENT, blob->implementation) (status, &blob->handle, buffer_length, buffer);
+		dispatch_put_segment(blob->implementation, status, &blob->handle, buffer_length, buffer);
 	}
 	catch (const Exception& e)
 	{
@@ -4764,7 +4964,7 @@ ISC_STATUS API_ROUTINE GDS_SEEK_BLOB(ISC_STATUS* user_status,
 		Blob blob = translate<CBlob>(blob_handle);
 		YEntry entryGuard(status, blob);
 
-		CALL(PROC_SEEK_BLOB, blob->implementation) (status, &blob->handle, mode, offset, result);
+		dispatch_seek_blob(blob->implementation, status, &blob->handle, mode, offset, result);
 	}
 	catch (const Exception& e)
 	{
@@ -5859,10 +6059,9 @@ static ISC_STATUS open_blob(ISC_STATUS* user_status,
 							FB_API_HANDLE* tra_handle,
 							FB_API_HANDLE* public_blob_handle,
 							SLONG* blob_id,
-							USHORT bpb_length,
-							const UCHAR* bpb,
-							SSHORT proc,
-							SSHORT proc2)
+	USHORT bpb_length,
+	const UCHAR* bpb,
+	bool create)
 {
 /**************************************
  *
@@ -5885,31 +6084,17 @@ static ISC_STATUS open_blob(ISC_STATUS* user_status,
 		YEntry entryGuard(status, attachment);
 		Transaction transaction = findTransaction(tra_handle, attachment);
 
-		USHORT flags = 0;
-		USHORT from, to;
-		gds__parse_bpb(bpb_length, bpb, &from, &to);
-
-		if (get_entrypoint(proc2, attachment->implementation) != no_entrypoint &&
-			CALL(proc2, attachment->implementation) (status, &attachment->handle,
-				&transaction->handle, &blob_handle, blob_id, bpb_length,
-				bpb) != isc_unavailable)
-		{
-			flags = 0;
-		}
-		else if (!to || from == to)
-		{
-			// This code has no effect because jrd8_create_blob, jrd8_open_blob,
-			// REM_create_blob and REM_open_blob are defined as no_entrypoint in entry.h
-			CALL(proc, attachment->implementation) (status, &attachment->handle,
-				&transaction->handle, &blob_handle, blob_id);
-		}
+		// Rows 30 and 31 are the supported blob open/create entry points. The
+		// legacy rows 6 and 11 are no_entrypoint in entry.h, so do not probe or
+		// dispatch through their untyped table entries.
+		dispatch_open_blob2(attachment->implementation, status, &attachment->handle,
+			&transaction->handle, &blob_handle, blob_id, bpb_length, bpb, create);
 
 		if (status[1]) {
 			return status[1];
 		}
 
 		Blob blob(new CBlob(blob_handle, public_blob_handle, attachment, transaction));
-		blob->flags |= flags;
 	}
 	catch (const Exception& e)
 	{
