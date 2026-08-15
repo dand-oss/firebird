@@ -23,11 +23,11 @@ else()
 if (WIN32)
     # For isql/gpre: Don't set PATH - DLLs are in same dir as EXE, and setting PATH
     # would replace system PATH breaking MSVC runtime DLL loading
-    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=$<TARGET_FILE_DIR:yvalve>" "ASAN_OPTIONS=detect_leaks=0")
+    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=$<TARGET_FILE_DIR:yvalve>" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
     # For empbuild: needs PATH to find gfix/isql via system() calls
-    set(EMPBUILD_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=$<TARGET_FILE_DIR:yvalve>" "ASAN_OPTIONS=detect_leaks=0" "PATH=$<TARGET_FILE_DIR:yvalve>")
+    set(EMPBUILD_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=$<TARGET_FILE_DIR:yvalve>" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0" "PATH=$<TARGET_FILE_DIR:yvalve>")
 else()
-    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}" "ASAN_OPTIONS=detect_leaks=0")
+    set(MASTER_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${output_dir}" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
     set(MASTER_ENV ${MASTER_ENV} "PATH=${output_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${output_dir}/lib:${output_dir}")
     set(EMPBUILD_ENV ${MASTER_ENV})
 endif()
