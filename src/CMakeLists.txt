@@ -120,7 +120,7 @@ project_group(boot_environment "Boot/Custom build steps")
 # Note: boot_dir already includes $<CONFIG> for multi-config generators (set in CMakeLists.txt)
 if (WIN32)
     # No PATH needed - Windows finds DLLs in same directory as EXE
-    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
+    set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
 else()
     set(BOOT_ENV ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
     set(BOOT_ENV ${BOOT_ENV} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}")

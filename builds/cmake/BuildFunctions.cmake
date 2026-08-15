@@ -98,7 +98,7 @@ function(epp_process type files gpre_target)
     # Note: boot_dir already includes $<CONFIG> for multi-config generators
     if (WIN32)
         # No PATH needed - Windows finds DLLs in same directory as EXE
-        set(MASTER_ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
+        set(MASTER_ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "ASAN_OPTIONS=detect_leaks=0")
     else()
         set(MASTER_ENV_CMD ${CMAKE_COMMAND} -E env "FIREBIRD=${boot_dir}" "FIREBIRD_LOCK=${FB_LOCK_DIR}" "ASAN_OPTIONS=detect_leaks=0")
         set(MASTER_ENV_CMD ${MASTER_ENV_CMD} "PATH=${boot_dir}/bin:$ENV{PATH}" "LD_LIBRARY_PATH=${boot_dir}/lib:${boot_dir}")
