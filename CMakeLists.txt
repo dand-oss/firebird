@@ -240,6 +240,10 @@ endif()
 
 # NOTE: CMAKE_INSTALL_PREFIX already includes project name when install_pkg_as_subdir=True
 set(FB_PREFIX ${CMAKE_INSTALL_PREFIX})
+# Build-time Firebird tools must not depend on the system service lock
+# directory, which is normally private to the firebird user.
+set(FB_LOCK_DIR "${CMAKE_BINARY_DIR}/firebird-lock")
+file(MAKE_DIRECTORY "${FB_LOCK_DIR}")
 set(FB_IPC_NAME "FirebirdIPI")
 set(FB_LOGFILENAME "firebird.log")
 set(FB_SERVICE_NAME "gds_db")
