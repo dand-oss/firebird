@@ -921,96 +921,6 @@ namespace
 		fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_exit_called);
 	}
 
-#ifdef UNIX
-	int killed;
-	bool procInt, procTerm;
-
-	GlobalPtr<SignalSafeSemaphore> shutdownSemaphore;
-
-	THREAD_ENTRY_DECLARE shutdownThread(THREAD_ENTRY_PARAM)
-	{
-		for (;;)
-		{
-			killed = 0;
-			try {
-				shutdownSemaphore->enter();
-			}
-			catch (status_exception& e)
-			{
-				TEXT buffer[BUFFER_LARGE];
-				const ISC_STATUS* vector = e.value();
-				if (! (vector && fb_interpret(buffer, sizeof(buffer), &vector)))
-				{
-					strcpy(buffer, "Unknown failure in shutdown thread in shutSem:enter()");
-				}
-				fb_utils::logAndDie(buffer);
-			}
-
-			if (! killed)
-			{
-				break;
-			}
-
-			// perform shutdown
-			if (fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
-			{
-				InstanceControl::registerShutdown(0);
-				exit(0);
-			}
-		}
-
-		return 0;
-	}
-
-	void handler(int sig)
-	{
-		if (killed)
-		{
-			return;
-		}
-		killed = sig;
-		shutdownSemaphore->release();
-	}
-
-	void handlerInt(void*)
-	{
-		handler(SIGINT);
-	}
-
-	void handlerTerm(void*)
-	{
-		handler(SIGTERM);
-	}
-
-	class CtrlCHandler
-	{
-	public:
-		explicit CtrlCHandler(MemoryPool&)
-		{
-			InstanceControl::registerShutdown(atExitShutdown);
-
-			gds__thread_start(shutdownThread, 0, 0, 0, &handle);
-
-			procInt = ISC_signal(SIGINT, handlerInt, 0);
-			procTerm = ISC_signal(SIGTERM, handlerTerm, 0);
-		}
-
-		~CtrlCHandler()
-		{
-			ISC_signal_cancel(SIGINT, handlerInt, 0);
-			ISC_signal_cancel(SIGTERM, handlerTerm, 0);
-
-			if (! killed)
-			{
-				// must be done to let shutdownThread close
-				shutdownSemaphore->release();
-				THD_wait_for_completion(handle);
-			}
-		}
-	private:
-		ThreadHandle handle;
-	};
-#endif //UNIX
 
 	// YEntry:	Tracks FP exceptions state (via FpeControl).
 	//			Accounts activity per different attachments.
@@ -1031,16 +941,15 @@ namespace
 
 		void init()
 		{
-#ifdef UNIX
-			static GlobalPtr<CtrlCHandler> ctrlCHandler;
-#elif defined WIN_NT
+			// The client library installs no SIGINT/SIGTERM handler: the old one ran
+			// fb_shutdown() and exit() on its own thread under the host application's
+			// live threads. The host owns termination; the engine shuts down at exit.
 			static volatile bool registered = false;
 			if (!registered)
 			{
 				registered = true;
 				InstanceControl::registerShutdown(atExitShutdown);
 			}
-#endif //UNIX
 			if (att)
 			{
 				MutexLockGuard guard(att->enterMutex);
