@@ -764,105 +764,13 @@ private:
 	}
 };
 
-#ifdef UNIX
-	int killed;
-	bool procInt, procTerm;
-	SignalSafeSemaphore* shutdownSemaphore = NULL;
-
-	THREAD_ENTRY_DECLARE shutdownThread(THREAD_ENTRY_PARAM)
-	{
-		for (;;)
-		{
-			killed = 0;
-			try
-			{
-				if (shutdownSemaphore)
-					shutdownSemaphore->enter();
-			}
-			catch (status_exception& e)
-			{
-				TEXT buffer[BUFFER_LARGE];
-				const ISC_STATUS* vector = e.value();
-
-				if (! (vector && fb_interpret(buffer, sizeof(buffer), &vector)))
-					strcpy(buffer, "Unknown failure in shutdown thread in shutdownSemaphore->enter()");
-
-				fb_utils::logAndDie(buffer);
-			}
-
-			if (!killed)
-				break;
-
-			// perform shutdown
-			if (fb_shutdown(SHUTDOWN_TIMEOUT, fb_shutrsn_signal) == FB_SUCCESS)
-			{
-				InstanceControl::registerShutdown(0);
-				break;	//exit(0);
-			}
-		}
-
-		return 0;
-	}
-
-	void handler(int sig)
-	{
-		if (!killed && shutdownSemaphore)
-		{
-			killed = sig;
-			shutdownSemaphore->release();
-		}
-	}
-
-	void handlerInt(void*)
-	{
-		handler(SIGINT);
-	}
-
-	void handlerTerm(void*)
-	{
-		handler(SIGTERM);
-	}
-
-	class CtrlCHandler : public ShutdownInit
-	{
-	public:
-		SignalSafeSemaphore semaphore;
-
-		explicit CtrlCHandler(MemoryPool& p)
-			: ShutdownInit(p)
-		{
-			shutdownSemaphore = &semaphore;
-			Thread::start(shutdownThread, 0, 0, &thread);
-
-			procInt = ISC_signal(SIGINT, handlerInt, 0);
-			procTerm = ISC_signal(SIGTERM, handlerTerm, 0);
-		}
-
-		~CtrlCHandler()
-		{
-			ISC_signal_cancel(SIGINT, handlerInt, 0);
-			ISC_signal_cancel(SIGTERM, handlerTerm, 0);
-
-			if (!killed)
-			{
-				// Must be done to let shutdownThread close.
-				shutdownSemaphore->release();
-				shutdownSemaphore = NULL;
-				thread.waitForCompletion();
-			}
-		}
-	private:
-		Thread thread;
-	};
-#endif // UNIX
 
 	void signalInit()
 	{
-#ifdef UNIX
-		static GlobalPtr<CtrlCHandler> ctrlCHandler;
-#else
+		// The client library installs no SIGINT/SIGTERM handler: the old one ran
+		// fb_shutdown() on its own thread under the host application's live
+		// threads. The host owns termination; the engine shuts down at exit.
 		static GlobalPtr<ShutdownInit> shutdownInit;
-#endif // UNIX
 	}
 
 } // anonymous namespace
