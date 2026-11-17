@@ -641,6 +641,13 @@ file(GLOB engine_src
     "jrd/trace/*.cpp"
     "jrd/os/${OS_DIR}/*.cpp"
 )
+# ibinitdll.cpp is yvalve's DllMain; it is compiled into yvalve only
+list(REMOVE_ITEM engine_src ${CMAKE_CURRENT_SOURCE_DIR}/jrd/os/win32/ibinitdll.cpp)
+# The parse build step is skipped in a cross build; use the
+# pregenerated parser that Windows builds compile
+if (CMAKE_CROSSCOMPILING AND WIN32)
+    set(PARSER_CPP_FILE ${CMAKE_CURRENT_SOURCE_DIR}/dsql/pregenerated/dsql_parse.cpp)
+endif()
 set(engine_src ${engine_src}
     lock/lock.cpp
     utilities/gsec/gsec.cpp
