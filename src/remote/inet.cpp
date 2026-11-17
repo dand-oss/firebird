@@ -129,7 +129,7 @@ using namespace Firebird;
 #include "../utilities/install/install_nt.h"
 
 #include <mstcpip.h>
-#include <Ws2tcpip.h>
+#include <ws2tcpip.h>
 
 #ifndef SIO_LOOPBACK_FAST_PATH
 #define SIO_LOOPBACK_FAST_PATH              _WSAIOW(IOC_VENDOR,16)
