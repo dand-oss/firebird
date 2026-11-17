@@ -90,6 +90,16 @@ if (MSVC)
     )
 endif()
 
+# clang-cl (Linux cross build): match the native builds' -msse4 so the
+# CRC32C intrinsics compile, and accept the std::allocator_traits
+# specialization in common/classes/alloc.h, which MSVC allows.
+if (MSVC AND CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(
+        $<$<COMPILE_LANGUAGE:C,CXX>:-msse4.2>
+        $<$<COMPILE_LANGUAGE:CXX>:-Wno-invalid-specialization>
+    )
+endif()
+
 ########################################
 # ASI build options
 ########################################
