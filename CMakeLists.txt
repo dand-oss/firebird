@@ -336,7 +336,7 @@ if (UNIX)
     endif()
 endif()
 
-if (NOT LINUX AND (CLANG OR IOS))
+if (NOT LINUX AND NOT WIN32 AND (CLANG OR IOS))
     set(LIB_iconv iconv)
 endif()
 
