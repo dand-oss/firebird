@@ -818,7 +818,18 @@ install(FILES
 
 # ICU DLLs for Windows
 if (WIN32)
-    file(GLOB ICU_DLLS "${CMAKE_SOURCE_DIR}/extern/icu/bin64/*.dll")
+    if (CMAKE_CROSSCOMPILING)
+        # make_icu.bat unzips this on Windows; do it here for the cross build
+        if (NOT EXISTS ${CMAKE_BINARY_DIR}/extern/icu/x64/Release/bin/icuuc${ICU_VERSION}.dll)
+            file(ARCHIVE_EXTRACT
+                INPUT ${CMAKE_SOURCE_DIR}/extern/icu/icu_windows.zip
+                DESTINATION ${CMAKE_BINARY_DIR}/extern/icu
+            )
+        endif()
+        file(GLOB ICU_DLLS "${CMAKE_BINARY_DIR}/extern/icu/x64/Release/bin/*.dll")
+    else()
+        file(GLOB ICU_DLLS "${CMAKE_SOURCE_DIR}/extern/icu/bin64/*.dll")
+    endif()
     install(FILES ${ICU_DLLS} DESTINATION bin)
 endif()
 
@@ -1129,14 +1140,21 @@ if (WIN32 AND CMAKE_CROSSCOMPILING)
     else()
         set(arch "Win32")
     endif()
+    # make_icu.bat unzips this on Windows; do it here for the cross build
+    set(icu_cross_dir ${CMAKE_BINARY_DIR}/extern/icu)
+    if (NOT EXISTS ${icu_cross_dir}/${arch}/Release/bin/icuuc${ICU_VERSION}.dll)
+        file(ARCHIVE_EXTRACT
+            INPUT ${CMAKE_SOURCE_DIR}/extern/icu/icu_windows.zip
+            DESTINATION ${icu_cross_dir}
+        )
+    endif()
     add_custom_command(
         TARGET isql
         POST_BUILD
         COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/icudt${ICU_VERSION}l.dat ${output_dir}/icudt${ICU_VERSION}l.dat
-        # icu - use lowercase 'release' to match upstream zip structure
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icudt${ICU_VERSION}.dll ${output_dir}/icudt${ICU_VERSION}.dll
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icuin${ICU_VERSION}.dll ${output_dir}/icuin${ICU_VERSION}.dll
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icuuc${ICU_VERSION}.dll ${output_dir}/icuuc${ICU_VERSION}.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${icu_cross_dir}/${arch}/Release/bin/icudt${ICU_VERSION}.dll ${output_dir}/icudt${ICU_VERSION}.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${icu_cross_dir}/${arch}/Release/bin/icuin${ICU_VERSION}.dll ${output_dir}/icuin${ICU_VERSION}.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${icu_cross_dir}/${arch}/Release/bin/icuuc${ICU_VERSION}.dll ${output_dir}/icuuc${ICU_VERSION}.dll
     )
 endif()
 
