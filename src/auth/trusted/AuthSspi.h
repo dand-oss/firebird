@@ -46,7 +46,7 @@
 #define SECURITY_WIN32
 
 #include <windows.h>
-#include <Security.h>
+#include <security.h>
 #include <stdio.h>
 
 namespace Auth {

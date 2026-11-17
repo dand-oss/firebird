@@ -1079,7 +1079,7 @@ project_group               (boot_isql Boot)
 
 endif() # if (NOT CMAKE_CROSSCOMPILING)
 
-if (WIN32)
+if (WIN32 AND NOT CMAKE_CROSSCOMPILING)
     add_custom_command(
         TARGET boot_isql
         POST_BUILD
@@ -1120,6 +1120,25 @@ endif()
 
 add_executable              (isql ${isql_src} ${isql_generated_src_master} ${VERSION_RC})
 target_link_libraries       (isql common yvalve)
+
+if (WIN32 AND CMAKE_CROSSCOMPILING)
+    # cross build: no boot_isql, so copy ICU next to isql
+    string(FIND "${CMAKE_EXE_LINKER_FLAGS}" "/machine:x64" arch)
+    if (NOT ${arch} EQUAL -1)
+        set(arch "x64")
+    else()
+        set(arch "Win32")
+    endif()
+    add_custom_command(
+        TARGET isql
+        POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/icudt${ICU_VERSION}l.dat ${output_dir}/icudt${ICU_VERSION}l.dat
+        # icu - use lowercase 'release' to match upstream zip structure
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icudt${ICU_VERSION}.dll ${output_dir}/icudt${ICU_VERSION}.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icuin${ICU_VERSION}.dll ${output_dir}/icuin${ICU_VERSION}.dll
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different ${CMAKE_SOURCE_DIR}/extern/icu/${arch}/release/bin/icuuc${ICU_VERSION}.dll ${output_dir}/icuuc${ICU_VERSION}.dll
+    )
+endif()
 
 endif() # if (NOT FIREBIRD_BUILD_MODE STREQUAL "CLIENT") - executables
 

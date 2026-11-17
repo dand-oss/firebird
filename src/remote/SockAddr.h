@@ -34,8 +34,8 @@
 #else
 
 #include <winsock2.h>
-#include <Ws2tcpip.h>
-#include <Wspiapi.h>
+#include <ws2tcpip.h>
+#include <wspiapi.h>
 
 #ifndef IN_LOOPBACKNET
 #define IN_LOOPBACKNET 127

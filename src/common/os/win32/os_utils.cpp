@@ -49,7 +49,7 @@
 #include <fcntl.h>
 
 #include <aclapi.h>
-#include <Winsock2.h>
+#include <winsock2.h>
 
 using namespace Firebird;
 
